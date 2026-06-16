@@ -23,7 +23,7 @@ jobs:
       - name: Build CUDA extract (Windows x64)
         shell: cmd
         run: |
-          nvcc -O3 -DFP_TYPE=float -I include -o build\cllsm2_extract_cuda.exe cllsm2_extract_cuda.cu -lcufft -lcudart
+          nvcc -O3 -allow-unsupported-compiler -DFP_TYPE=float -I include -o build\cllsm2_extract_cuda.exe cllsm2_extract_cuda.cu -lcufft -lcudart
 
       - name: Show binary info
         run: |
