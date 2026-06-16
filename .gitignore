@@ -16,11 +16,6 @@
 *.gch
 *.pch
 
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
 
 # Shared objects (inc. Windows DLLs)
 *.dll
@@ -53,3 +48,5 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+build
