@@ -17,6 +17,9 @@ jobs:
           cuda: '12.2.0'
           use-github-cache: true
 
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Build CUDA extract (Windows x64)
         shell: cmd
         run: |
