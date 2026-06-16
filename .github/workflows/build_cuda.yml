@@ -15,7 +15,6 @@ jobs:
         uses: Jimver/cuda-toolkit@v0.2.16
         with:
           cuda: '12.2.0'
-          method: 'keep'
           use-github-cache: true
 
       - name: Build CUDA extract (Windows x64)
