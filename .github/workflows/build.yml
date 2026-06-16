@@ -1,0 +1,54 @@
+name: build
+
+on: [push]
+
+jobs:
+  windows-x64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+      - run: |
+          mkdir build
+          cl /O2 /MT /DFP_TYPE=float /Iinclude /Febuild\cllsm2_extract.exe ^
+            cllsm2_extract.c ^
+            include\libllsm2\container.c ^
+            include\libllsm2\frame.c ^
+            include\libllsm2\dsputils.c ^
+            include\libllsm2\llsmutils.c ^
+            include\libllsm2\layer0.c ^
+            include\libllsm2\layer1.c ^
+            include\libllsm2\coder.c ^
+            include\ciglet\ciglet.c ^
+            include\ciglet\external\fftsg_h.c ^
+            include\ciglet\external\fast_median.c
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cllsm2_extract-windows-x64
+          path: build\cllsm2_extract.exe
+
+  linux-x64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir -p build
+          gcc -static -O3 -DFP_TYPE=float -DUSE_PTHREAD \
+            -I include \
+            -o build/cllsm2_extract \
+            cllsm2_extract.c \
+            include/libllsm2/container.c \
+            include/libllsm2/frame.c \
+            include/libllsm2/dsputils.c \
+            include/libllsm2/llsmutils.c \
+            include/libllsm2/layer0.c \
+            include/libllsm2/layer1.c \
+            include/libllsm2/coder.c \
+            include/ciglet/ciglet.c \
+            include/ciglet/external/fftsg_h.c \
+            include/ciglet/external/fast_median.c \
+            -lm -lpthread -fopenmp
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cllsm2_extract-linux-x64
+          path: build/cllsm2_extract
