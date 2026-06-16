@@ -25,9 +25,9 @@ $src = @(
 
 $srcPaths = $src | ForEach-Object { Join-Path $ScriptDir $_ }
 
-$outPath = Join-Path $BuildDir "cllsm2_extract_static.exe"
+$outPath = Join-Path $BuildDir "cllsm2_extract.exe"
 
-Write-Host "Compiling cllsm2_extract_static.exe (fully static, no DLL deps) ..."
+Write-Host "Compiling cllsm2_extract.exe (fully static, no DLL deps) ..."
 & gcc -static -O3 -DFP_TYPE=float -I (Join-Path $ScriptDir "include") -o $outPath $srcPaths -lm
 
 if ($LASTEXITCODE -eq 0) {

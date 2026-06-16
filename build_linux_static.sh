@@ -7,7 +7,7 @@ mkdir -p build
 
 gcc -static -O3 -DFP_TYPE=float -DUSE_PTHREAD \
   -Iinclude \
-  -o build/cllsm2_extract_static \
+  -o build/cllsm2_extract \
   cllsm2_extract.c \
   include/libllsm2/container.c \
   include/libllsm2/frame.c \
@@ -20,3 +20,4 @@ gcc -static -O3 -DFP_TYPE=float -DUSE_PTHREAD \
   include/ciglet/external/fftsg_h.c \
   include/ciglet/external/fast_median.c \
   -lm -lpthread -fopenmp
+chmod 777 build/cllsm2_extract
