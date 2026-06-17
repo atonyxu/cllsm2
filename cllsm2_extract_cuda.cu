@@ -166,14 +166,35 @@ __global__ void czt_frame_kernel(const float* x, float* re, float* im,
   im[h] = si;
 }
 
+/* ----- GPU kernel: extract frame + apply Blackman window ----- */
+__global__ void extract_window_kernel(const float* x, int nx,
+    const int* centers, const int* winsizes,
+    float* dst, int nfft, int nfrm) {
+  int i = blockIdx.x;
+  int j = threadIdx.x;
+  if (i >= nfrm || j >= nfft) return;
+  int ws = winsizes[i];
+  int ct = centers[i];
+  float* out = dst + (size_t)i * nfft;
+  if (j < ws) {
+    int is = ct + j - ws / 2;
+    float a = 2.0f * (float)M_PI * j / ws;
+    float w = 0.42f - 0.5f * cosf(a) + 0.08f * cosf(2.0f * a);
+    out[j] = (is >= 0 && is < nx) ? x[is] * w : 0.0f;
+  } else {
+    out[j] = 0.0f;
+  }
+}
+
 /* GPU CZT for one frame: windowed frame x[nx], return nhar ampl/phse */
 static void gpu_czt(float* x, int nx, float f0, float fs, int nhar,
                      float* ampl, float* phse) {
   float omega0 = 2.0f * (float)M_PI * f0 / fs;
-  float *dx, *dre, *dim;
-  CUDA_CHECK(cudaMalloc(&dx,  (size_t)nx * sizeof(float)));
-  CUDA_CHECK(cudaMalloc(&dre, (size_t)(nhar + 1) * sizeof(float)));
-  CUDA_CHECK(cudaMalloc(&dim, (size_t)(nhar + 1) * sizeof(float)));
+  int need = nx + 2 * (nhar + 1);
+  float* pool = gpialloc(need);
+  float* dx = pool;
+  float* dre = pool + nx;
+  float* dim = pool + nx + (nhar + 1);
   CUDA_CHECK(cudaMemcpy(dx, x, (size_t)nx * sizeof(float), cudaMemcpyHostToDevice));
   int nth = nhar + 1 < 256 ? nhar + 1 : 256;
   czt_frame_kernel<<<1, nth>>>(dx, dre, dim, nx, nhar, omega0);
@@ -181,7 +202,6 @@ static void gpu_czt(float* x, int nx, float f0, float fs, int nhar,
   int m = nhar + 1 > 2048 ? 2048 : nhar + 1;
   CUDA_CHECK(cudaMemcpy(hr, dre, (size_t)m * sizeof(float), cudaMemcpyDeviceToHost));
   CUDA_CHECK(cudaMemcpy(hi, dim, (size_t)m * sizeof(float), cudaMemcpyDeviceToHost));
-  CUDA_CHECK(cudaFree(dx)); CUDA_CHECK(cudaFree(dre)); CUDA_CHECK(cudaFree(dim));
 
   /* window normalization */
   float ws = 0;
@@ -251,38 +271,52 @@ static void ha_cuda(FP_TYPE* x, int nx, FP_TYPE fs, FP_TYPE* f0, int nfrm,
     for(int i = 0, v = 0; i < nfrm; i++)
       if(f0[i] > 0) { iv[v] = i; wz[v] = (int)(fs / f0[i] * rw / 2) * 2; ct[v] = (int)(i * thop * fs); v++; }
 
-    cufftHandle pl;
-    CUFFT_CHECK(cufftPlan1d(&pl, nfft, CUFFT_R2C, 1));
-    float *di = NULL, *dout = NULL;
-    CUDA_CHECK(cudaMalloc(&di,   (size_t)nfft * sizeof(float)));
-    CUDA_CHECK(cudaMalloc(&dout, (size_t)nfft * sizeof(cufftComplex)));
+    /* Precompute window sums on CPU (exact Blackman sum = 0.42 * winsize) */
+    float* wsum = (float*)calloc((size_t)nv, sizeof(float));
+    for(int v = 0; v < nv; v++) wsum[v] = 0.42f * wz[v];
 
+    /* Upload audio + frame metadata to GPU */
+    float *dx, *dfrm, *dout;
+    int *dct, *dwz;
+    size_t nfft_sz = (size_t)nfft;
+    CUDA_CHECK(cudaMalloc(&dx,   (size_t)nx * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&dfrm, (size_t)nv * nfft_sz * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&dout, (size_t)nv * (size_t)ns * 2 * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&dct,  (size_t)nv * sizeof(int)));
+    CUDA_CHECK(cudaMalloc(&dwz,  (size_t)nv * sizeof(int)));
+    CUDA_CHECK(cudaMemcpy(dx,  x,  (size_t)nx * sizeof(float), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(dct, ct, (size_t)nv * sizeof(int),   cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(dwz, wz, (size_t)nv * sizeof(int),   cudaMemcpyHostToDevice));
+
+    /* GPU: extract + window all frames in one kernel launch */
+    extract_window_kernel<<<nv, 256>>>(dx, nx, dct, dwz, dfrm, nfft, nv);
+
+    /* Batched cuFFT R2C (all frames, same nfft) */
+    cufftHandle pl;
+    CUFFT_CHECK(cufftPlan1d(&pl, nfft, CUFFT_R2C, nv));
+    CUFFT_CHECK(cufftExecR2C(pl, dfrm, (cufftComplex*)dout));
+
+    /* Download all spectrograms in one transfer */
     FP_TYPE** mg = (FP_TYPE**)malloc2d_((size_t)nv, (size_t)ns, sizeof(FP_TYPE));
     FP_TYPE** ph = (FP_TYPE**)malloc2d_((size_t)nv, (size_t)ns, sizeof(FP_TYPE));
 
+    float* ho = (float*)malloc((size_t)nv * (size_t)ns * 2 * sizeof(float));
+    CUDA_CHECK(cudaMemcpy(ho, dout, (size_t)nv * (size_t)ns * 2 * sizeof(float), cudaMemcpyDeviceToHost));
+
     for(int t = 0; t < nv; t++) {
-      float* frm = (float*)calloc((size_t)nfft, sizeof(float));
-      float ws = 0;
-      for(int j = 0; j < wz[t]; j++) {
-        int is = ct[t] + j - wz[t] / 2;
-        float a = 2.0f * (float)M_PI * j / wz[t];
-        float ww = 0.42f - 0.5f * cosf(a) + 0.08f * cosf(2.0f * a);
-        frm[j] = (is >= 0 && is < nx) ? x[is] * ww : 0;
-        ws += ww;
-      }
-      CUDA_CHECK(cudaMemcpy(di, frm, (size_t)nfft * sizeof(float), cudaMemcpyHostToDevice));
-      CUFFT_CHECK(cufftExecR2C(pl, di, (cufftComplex*)dout));
-      float* ho = (float*)malloc((size_t)nfft * sizeof(cufftComplex));
-      CUDA_CHECK(cudaMemcpy(ho, dout, (size_t)nfft * sizeof(cufftComplex), cudaMemcpyDeviceToHost));
-      float norm = 1024.0f / ws * 0.5f;
+      float norm = 512.0f / wsum[t];
+      float* fo = ho + (size_t)t * (size_t)ns * 2;
       for(int k = 0; k < ns; k++) {
-        float re = ho[k*2], im = ho[k*2+1];
+        float re = fo[k*2], im = fo[k*2+1];
         mg[t][k] = sqrtf(re*re + im*im) * norm;
         ph[t][k] = atan2f(im, re);
       }
-      free(frm); free(ho);
     }
-    CUDA_CHECK(cudaFree(di)); CUDA_CHECK(cudaFree(dout)); CUFFT_CHECK(cufftDestroy(pl));
+
+    CUDA_CHECK(cudaFree(dx)); CUDA_CHECK(cudaFree(dfrm));
+    CUDA_CHECK(cudaFree(dout)); CUDA_CHECK(cudaFree(dct)); CUDA_CHECK(cudaFree(dwz));
+    CUFFT_CHECK(cufftDestroy(pl));
+    free(ho);
 
     for(int v = 0; v < nv; v++) {
       int idx = iv[v];
@@ -308,7 +342,7 @@ static void ha_cuda(FP_TYPE* x, int nx, FP_TYPE fs, FP_TYPE* f0, int nfrm,
       }
     }
     free2d_((void**)mg, (size_t)nv); free2d_((void**)ph, (size_t)nv);
-    free(iv); free(wz); free(ct);
+    free(iv); free(wz); free(ct); free(wsum);
   }
 }
 
