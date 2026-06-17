@@ -9,6 +9,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# --- Ensure numpy is available ---
+python -c "import numpy" 2>$null
+if ($LASTEXITCODE -ne 0) {
+  Write-Host "numpy not found, installing..."
+  pip install numpy 2>&1 | Out-Null
+  if ($LASTEXITCODE -ne 0) { Write-Error "Failed to install numpy"; exit 1 }
+}
+
 # --- Generate test data if not present ---
 if (!(Test-Path $AudioF32) -or !(Test-Path $F0Csv)) {
   Write-Host "Generating test data..."
