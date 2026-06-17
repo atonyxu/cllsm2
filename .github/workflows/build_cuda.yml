@@ -8,28 +8,83 @@ on:
 jobs:
   windows-cuda-x64:
     runs-on: windows-2022
+    
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup CUDA
-        uses: Jimver/cuda-toolkit@v0.2.16
+      # ========== 1. 缓存 Conda 包（加速核心）==========
+      - name: Cache Conda Packages
+        uses: actions/cache@v4
         with:
-          cuda: '12.2.0'
-          use-github-cache: true
+          path: ~/conda_pkgs_dir
+          key: conda-win-cuda128-msvc2022-v1
+          restore-keys: |
+            conda-win-cuda128-msvc2022-
 
-      - name: Setup MSVC
-        uses: ilammy/msvc-dev-cmd@v1
+      # ========== 2. 初始化 Conda 环境 ==========
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: false
+          python-version: "3.10"
+          activate-environment: cuda_dev
+          channels: nvidia/label/cuda-12.8.0,nvidia,conda-forge,defaults
+          channel-priority: strict
+          use-only-tar-bz2: false
 
-      - name: Build CUDA extract (Windows x64)
-        shell: cmd
+      # ========== 3. 安装 CUDA 12.8 + MSVC ==========
+      - name: Install CUDA 12.8 & MSVC
+        shell: pwsh
         run: |
-          nvcc -O3 -allow-unsupported-compiler -DFP_TYPE=float -I include -o build\cllsm2_extract_cuda.exe cllsm2_extract_cuda.cu -lcufft -lcudart
+          conda install -y -c nvidia/label/cuda-12.8.0 `
+            cuda-nvcc=12.8 `
+            cuda-cudart-dev=12.8 `
+            cuda-libraries-dev=12.8 `
+            libcufft-dev=12.8
+          
+          conda install -y -c conda-forge `
+            vs2022_win-64 `
+            vs2022_compiler_vars
+        env:
+          CONDA_SOLVER: libmamba
 
+      # ========== 4. 激活 MSVC 并编译（多架构）==========
+      - name: Build CUDA extract (Windows x64)
+        shell: pwsh
+        run: |
+          # 激活 MSVC 环境变量
+          $activateScript = "$env:CONDA_PREFIX\etc\conda\activate.d\vs2022_compiler_vars.bat"
+          if (Test-Path $activateScript) {
+            cmd /c "`"$activateScript`" && set" | ForEach-Object {
+              if ($_ -match "^(.+?)=(.*)$") {
+                [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
+              }
+            }
+          } else {
+            Write-Error "MSVC activate script not found!"
+            exit 1
+          }
+
+          New-Item -ItemType Directory -Force -Path build | Out-Null
+
+          # ⚠️ 多架构编译：覆盖 T4 / 30系 / 40系 / 50系
+          nvcc -O3 -DFP_TYPE=float `
+            -gencode arch=compute_75,code=sm_75 `
+            -gencode arch=compute_86,code=sm_86 `
+            -gencode arch=compute_89,code=sm_89 `
+            -gencode arch=compute_120,code=sm_120 `
+            -I include `
+            -o build\cllsm2_extract_cuda.exe `
+            cllsm2_extract_cuda.cu `
+            -lcufft -lcudart
+
+      # ========== 5. 验证产物 ==========
       - name: Show binary info
+        shell: pwsh
         run: |
           if (Test-Path "build\cllsm2_extract_cuda.exe") {
             $f = Get-Item "build\cllsm2_extract_cuda.exe"
-            Write-Output "Size: $($f.Length / 1KB) KB"
+            Write-Output "Size: $([math]::Round($f.Length / 1KB, 2)) KB"
           } else {
             Write-Output "ERROR: binary not found"
             exit 1
