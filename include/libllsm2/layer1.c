@@ -56,14 +56,14 @@ static FP_TYPE* llsm_analyze_rd(llsm_chunk* src) {
   llsm_cached_glottal_model* cgm = llsm_create_cached_glottal_model(
     rd_list, ncandidate, 80);
   free(rd_list);
-  FP_TYPE* rd = calloc(nfrm, sizeof(FP_TYPE));
+  FP_TYPE* rd = (FP_TYPE*)calloc(nfrm, sizeof(FP_TYPE));
   for(int i = 0; i < nfrm; i ++) {
     FP_TYPE f0 = *((FP_TYPE*)llsm_container_get(src -> frames[i],
       LLSM_FRAME_F0));
     if(f0 == 0) continue;
     llsm_hmframe* hm = llsm_container_get(src -> frames[i], LLSM_FRAME_HM);
     int nhar = min(hm -> nhar, round(8000.0 / f0));
-    FP_TYPE* ampl = calloc(nhar, sizeof(FP_TYPE));
+    FP_TYPE* ampl = (FP_TYPE*)calloc(nhar, sizeof(FP_TYPE));
     memcpy(ampl, hm -> ampl, nhar * sizeof(FP_TYPE));
     llsm_lipfilter(lip_radius, f0, nhar, ampl, NULL, 1);
     rd[i] = llsm_spectral_glottal_fitting(ampl, nhar, cgm);
@@ -89,9 +89,9 @@ static void llsm_frame_tolayer1(llsm_container* dst, FP_TYPE lip_radius,
   FP_TYPE rd = *((FP_TYPE*)llsm_container_get(dst, LLSM_FRAME_RD));
   FP_TYPE f0 = *((FP_TYPE*)llsm_container_get(dst, LLSM_FRAME_F0));
   llsm_hmframe* hm = llsm_container_get(dst, LLSM_FRAME_HM);
-  FP_TYPE* ampl = calloc(hm -> nhar, sizeof(FP_TYPE));
-  FP_TYPE* phse = calloc(hm -> nhar, sizeof(FP_TYPE));
-  FP_TYPE* freq = calloc(hm -> nhar, sizeof(FP_TYPE));
+  FP_TYPE* ampl = (FP_TYPE*)calloc(hm -> nhar, sizeof(FP_TYPE));
+  FP_TYPE* phse = (FP_TYPE*)calloc(hm -> nhar, sizeof(FP_TYPE));
+  FP_TYPE* freq = (FP_TYPE*)calloc(hm -> nhar, sizeof(FP_TYPE));
   memcpy(ampl, hm -> ampl, hm -> nhar * sizeof(FP_TYPE));
   memcpy(phse, hm -> phse, hm -> nhar * sizeof(FP_TYPE));
   for(int i = 0; i < hm -> nhar; i ++) freq[i] = f0 * (i + 1.0);
@@ -106,7 +106,7 @@ static void llsm_frame_tolayer1(llsm_container* dst, FP_TYPE lip_radius,
   for(int i = 0; i < hm -> nhar; i ++) ampl[i] /= vs_ampl[i];
 
   FP_TYPE* vt_phse = llsm_harmonic_minphase(ampl, hm -> nhar);
-  FP_TYPE* vs_phse = calloc(hm -> nhar, sizeof(FP_TYPE));
+  FP_TYPE* vs_phse = (FP_TYPE*)calloc(hm -> nhar, sizeof(FP_TYPE));
   for(int i = 0; i < hm -> nhar; i ++) vs_phse[i] = phse[i] - vt_phse[i];
 
   // The spectral envelope after removing lip and glottal responses.
@@ -166,7 +166,7 @@ void llsm_frame_tolayer0(llsm_container* dst, llsm_container* conf) {
   if(maxnhar != NULL) nhar = min(nhar, *maxnhar);
   nhar = min(nhar, (int)(fnyq / *f0));
 
-  FP_TYPE* freq = calloc(nhar, sizeof(FP_TYPE));
+  FP_TYPE* freq = (FP_TYPE*)calloc(nhar, sizeof(FP_TYPE));
   for(int i = 0; i < nhar; i ++) freq[i] = *f0 * (i + 1.0);
 
   lfmodel glott = lfmodel_from_rd(*rd, 1.0 / *f0, 1.0);

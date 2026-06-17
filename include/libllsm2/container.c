@@ -22,19 +22,19 @@
 #include <stdlib.h>
 
 FP_TYPE* llsm_create_fp(FP_TYPE x) {
-  FP_TYPE* ret = malloc(sizeof(FP_TYPE));
+  FP_TYPE* ret = (FP_TYPE*)malloc(sizeof(FP_TYPE));
   *ret = x;
   return ret;
 }
 
 int*     llsm_create_int(int x) {
-  int* ret = malloc(sizeof(int));
+  int* ret = (int*)malloc(sizeof(int));
   *ret = x;
   return ret;
 }
 
 FP_TYPE* llsm_create_fparray(int size) {
-  void* ret = calloc(sizeof(FP_TYPE) * size + sizeof(int), 1);
+  void* ret = (void*)calloc(sizeof(FP_TYPE) * size + sizeof(int), 1);
   ((int*)ret)[0] = size;
   return (FP_TYPE*)((int*)ret + 1);
 }
@@ -71,10 +71,10 @@ int      llsm_fparray_length(FP_TYPE* src) {
 }
 
 llsm_container* llsm_create_container(int nmember) {
-  llsm_container* ret = malloc(sizeof(llsm_container));
-  ret -> members = calloc(nmember, sizeof(void*));
-  ret -> destructors = calloc(nmember, sizeof(llsm_fdestructor));
-  ret -> copyctors = calloc(nmember, sizeof(llsm_fcopy));
+  llsm_container* ret = (llsm_container*)malloc(sizeof(llsm_container));
+  ret -> members = (void**)calloc(nmember, sizeof(void*));
+  ret -> destructors = (llsm_fdestructor*)calloc(nmember, sizeof(llsm_fdestructor));
+  ret -> copyctors = (llsm_fcopy*)calloc(nmember, sizeof(llsm_fcopy));
   ret -> nmember = nmember;
   return ret;
 }
@@ -127,10 +127,10 @@ void llsm_container_attach_(llsm_container* dst, int index, void* ptr,
   llsm_fdestructor dtor, llsm_fcopy copyctor) {
   if(index >= dst -> nmember) { // expand container
     int new_size = index + 1;
-    dst -> members = realloc(dst -> members, sizeof(void*) * new_size);
-    dst -> destructors = realloc(dst -> destructors,
+    dst -> members = (void**)realloc(dst -> members, sizeof(void*) * new_size);
+    dst -> destructors = (llsm_fdestructor*)realloc(dst -> destructors,
       sizeof(llsm_fdestructor*) * new_size);
-    dst -> copyctors = realloc(dst -> copyctors,
+    dst -> copyctors = (llsm_fcopy*)realloc(dst -> copyctors,
       sizeof(llsm_fcopy*) * new_size);
     for(int i = dst -> nmember; i < new_size; i ++) {
       dst -> members[i] = NULL;
@@ -156,7 +156,7 @@ void llsm_container_remove(llsm_container* dst, int index) {
 }
 
 llsm_chunk* llsm_create_chunk(llsm_container* conf, int init_frames) {
-  llsm_chunk* ret = malloc(sizeof(llsm_chunk));
+  llsm_chunk* ret = (llsm_chunk*)malloc(sizeof(llsm_chunk));
   int* nfrm = llsm_container_get(conf, LLSM_CONF_NFRM);
   int* nchannel = llsm_container_get(conf, LLSM_CONF_NCHANNEL);
   int* npsd = llsm_container_get(conf, LLSM_CONF_NPSD);
@@ -164,7 +164,7 @@ llsm_chunk* llsm_create_chunk(llsm_container* conf, int init_frames) {
 
   ret -> conf = llsm_copy_container(conf);
   if(nfrm != NULL) {
-    ret -> frames = calloc(*nfrm, sizeof(llsm_container*));
+    ret -> frames = (llsm_container**)calloc(*nfrm, sizeof(llsm_container*));
     if(init_frames)
       for(int i = 0; i < *nfrm; i ++)
         ret -> frames[i] = llsm_create_frame(0, *nchannel, 0, *npsd);

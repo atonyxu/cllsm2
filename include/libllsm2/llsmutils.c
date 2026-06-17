@@ -65,8 +65,8 @@ static void make_filtered_pulse_spectrum(llsm_container* src, lfmodel source,
   FP_TYPE* rd = llsm_container_get(src, LLSM_FRAME_RD);
   FP_TYPE* f0 = llsm_container_get(src, LLSM_FRAME_F0);
   FP_TYPE* vsphse = llsm_container_get(src, LLSM_FRAME_VSPHSE);
-  FP_TYPE* freq_har = calloc(nhar + 1, sizeof(FP_TYPE));
-  FP_TYPE* phse_har = calloc(nhar + 1, sizeof(FP_TYPE));
+  FP_TYPE* freq_har = (FP_TYPE*)calloc(nhar + 1, sizeof(FP_TYPE));
+  FP_TYPE* phse_har = (FP_TYPE*)calloc(nhar + 1, sizeof(FP_TYPE));
   for(int i = 0; i <= nhar; i ++) freq_har[i] = i * f0[0];
   // First, we compute the difference between LF-model phase and the actual
   //   phase for each harmonic. This difference will be freq-interpolated and
@@ -88,8 +88,8 @@ static void make_filtered_pulse_spectrum(llsm_container* src, lfmodel source,
   //   envelope. Phase interpolation is error-prone but in this context
   //   systematic errors won't matter thanks to the error-cancelling effect
   //   of PSOLA. Spurious errors matter though.
-  FP_TYPE* phse_re = calloc(nhar + 1, sizeof(FP_TYPE));
-  FP_TYPE* phse_im = calloc(nhar + 1, sizeof(FP_TYPE));
+  FP_TYPE* phse_re = (FP_TYPE*)calloc(nhar + 1, sizeof(FP_TYPE));
+  FP_TYPE* phse_im = (FP_TYPE*)calloc(nhar + 1, sizeof(FP_TYPE));
   for(int i = 0; i < nhar + 1; i ++) {
     phse_re[i] = cos_2(phse_har[i]);
     phse_im[i] = sin_2(phse_har[i]);
@@ -110,7 +110,7 @@ static void make_filtered_pulse_spectrum(llsm_container* src, lfmodel source,
   //   become glottal flow velocity); then various phase corrections are
   //   applied. The amplitude is normalized by the first glottal harmonic and
   //   appropriately scaled for IFFT.
-  FP_TYPE* lfphseresp = calloc(halfsize, sizeof(FP_TYPE));
+  FP_TYPE* lfphseresp = (FP_TYPE*)calloc(halfsize, sizeof(FP_TYPE));
   FP_TYPE* lfmagnf0 = lfmodel_spectrum(source_orig, f0, 1, NULL);
   FP_TYPE* lfmagnresp = lfmodel_spectrum(
     source, freq_axis, halfsize, lfphseresp);
@@ -132,7 +132,7 @@ static void make_filtered_pulse_spectrum(llsm_container* src, lfmodel source,
 FP_TYPE* llsm_make_filtered_pulse(llsm_container* src, lfmodel* sources,
   FP_TYPE* offsets, int num_pulses, int pre_rotate, int size, FP_TYPE fnyq,
   FP_TYPE lip_radius, FP_TYPE fs) {
-  FP_TYPE* buffer = calloc(size * 5, sizeof(FP_TYPE));
+  FP_TYPE* buffer = (FP_TYPE*)calloc(size * 5, sizeof(FP_TYPE));
   FP_TYPE* freq_axis = buffer + size * 2;
   FP_TYPE* real_resp = buffer + size * 3;
   FP_TYPE* imag_resp = buffer + size * 4;
@@ -150,7 +150,7 @@ FP_TYPE* llsm_make_filtered_pulse(llsm_container* src, lfmodel* sources,
   //   phase directly from its harmonic representation, albeit at a cost of
   //   slightly breaking minimum phase property (w.r.t full-sized spectra).
   FP_TYPE* vtaxis = linspace(0, fnyq, nspec);
-  FP_TYPE* freq_har = calloc(nhar + 1, sizeof(FP_TYPE));
+  FP_TYPE* freq_har = (FP_TYPE*)calloc(nhar + 1, sizeof(FP_TYPE));
   for(int i = 0; i <= nhar; i ++) freq_har[i] = i * f0[0];
   FP_TYPE* vtamplhar = interp1(vtaxis, vtmagn, nspec, freq_har + 1, nhar);
   for(int i = 0; i < nhar; i ++)
@@ -188,7 +188,7 @@ FP_TYPE* llsm_make_filtered_pulse(llsm_container* src, lfmodel* sources,
   // Some tricks to reduce glitches at boundaries.
   int fadein = min(256, pre_rotate);
   int fadeout = min(256, size);
-  FP_TYPE* y = calloc(size, sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)calloc(size, sizeof(FP_TYPE));
   for(int i = 0; i < size; i ++)
     y[i] = real_resp[i];
   for(int i = 0; i < fadein; i ++)

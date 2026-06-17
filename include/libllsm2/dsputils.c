@@ -31,8 +31,8 @@ static int get_chebyshev_filter(FP_TYPE cutoff, char* type,
   int index = max(0, round(cutoff * 2.0 / step_freq - 1));
   if(index >= filter_number) index = filter_number - 1;
   int order = coef_size;
-  *dst_a = calloc(order, sizeof(FP_TYPE));
-  *dst_b = calloc(order, sizeof(FP_TYPE));
+  *dst_a = (FP_TYPE*)calloc(order, sizeof(FP_TYPE));
+  *dst_b = (FP_TYPE*)calloc(order, sizeof(FP_TYPE));
   const FP_TYPE* a_line, *b_line;
   if(! strcmp(type, "lowpass")) {
     a_line = cheby_l_a + index * coef_size;
@@ -144,7 +144,7 @@ void llsm_harmonic_peakpicking(FP_TYPE* spectrum, FP_TYPE* phase,
 
 void llsm_harmonic_czt(FP_TYPE* x, int nx, FP_TYPE f0, FP_TYPE fs,
   int nhar, FP_TYPE* dst_ampl, FP_TYPE* dst_phse) {
-  FP_TYPE* tmp = calloc(nx * 4, sizeof(FP_TYPE));
+  FP_TYPE* tmp = (FP_TYPE*)calloc(nx * 4, sizeof(FP_TYPE));
   FP_TYPE* tmp_re = tmp;
   FP_TYPE* tmp_im = tmp + nx * 2;
 
@@ -180,9 +180,9 @@ void llsm_harmonic_analysis(FP_TYPE* x, int nx, FP_TYPE fs, FP_TYPE* f0,
 
   int nvfrm = 0; // number of voiced frames
   for(int i = 0; i < nfrm; i ++) nvfrm += f0[i] > 0;
-  int* index_vfrm = calloc(nvfrm, sizeof(int));
-  int* winsize    = calloc(nvfrm, sizeof(int));
-  int* center     = calloc(nvfrm, sizeof(int));
+  int* index_vfrm = (int*)calloc(nvfrm, sizeof(int));
+  int* winsize = (int*)calloc(nvfrm, sizeof(int));
+  int* center = (int*)calloc(nvfrm, sizeof(int));
   nvfrm = 0;
   for(int i = 0; i < nfrm; i ++) {
     if(f0[i] > 0) {
@@ -204,8 +204,8 @@ void llsm_harmonic_analysis(FP_TYPE* x, int nx, FP_TYPE fs, FP_TYPE* f0,
         spec_magn[i][j] = log(spec_magn[i][j] + 1e-8);
       int idx = index_vfrm[i];
       dst_nhar[idx] = min(f0_to_nhar(f0[idx], fs), maxnhar);
-      dst_ampl[idx] = calloc(dst_nhar[idx], sizeof(FP_TYPE));
-      dst_phse[idx] = calloc(dst_nhar[idx], sizeof(FP_TYPE));
+      dst_ampl[idx] = (FP_TYPE*)calloc(dst_nhar[idx], sizeof(FP_TYPE));
+      dst_phse[idx] = (FP_TYPE*)calloc(dst_nhar[idx], sizeof(FP_TYPE));
       llsm_harmonic_peakpicking(spec_magn[i], spec_phse[i], nfft, fs,
         dst_nhar[idx], f0[idx], dst_ampl[idx], dst_phse[idx]);
     }
@@ -216,8 +216,8 @@ void llsm_harmonic_analysis(FP_TYPE* x, int nx, FP_TYPE fs, FP_TYPE* f0,
       int idx = index_vfrm[i];
       FP_TYPE* xfrm = fetch_frame(x, nx, center[i], winsize[i]);
       dst_nhar[idx] = min(f0_to_nhar(f0[idx], fs), maxnhar);
-      dst_ampl[idx] = calloc(dst_nhar[idx], sizeof(FP_TYPE));
-      dst_phse[idx] = calloc(dst_nhar[idx], sizeof(FP_TYPE));
+      dst_ampl[idx] = (FP_TYPE*)calloc(dst_nhar[idx], sizeof(FP_TYPE));
+      dst_phse[idx] = (FP_TYPE*)calloc(dst_nhar[idx], sizeof(FP_TYPE));
       llsm_harmonic_czt(xfrm, winsize[i], f0[idx], fs, dst_nhar[idx],
         dst_ampl[idx], dst_phse[idx]);
       free(xfrm);
@@ -246,7 +246,7 @@ void llsm_fft_to_psd(FP_TYPE* X_re, FP_TYPE* X_im, int nfft, FP_TYPE wsqr,
 void llsm_estimate_psd(FP_TYPE* x, int nx, int nfft, FP_TYPE* dst_psd) {
   // Allocate window and FFT buffer.
   FP_TYPE* window = blackman(nx);
-  FP_TYPE* fftbuff = calloc(nfft * 4, sizeof(FP_TYPE));
+  FP_TYPE* fftbuff = (FP_TYPE*)calloc(nfft * 4, sizeof(FP_TYPE));
   FP_TYPE* x_re = fftbuff + 0;
   FP_TYPE* x_im = fftbuff + nfft;
 
@@ -266,7 +266,7 @@ void llsm_estimate_psd(FP_TYPE* x, int nx, int nfft, FP_TYPE* dst_psd) {
 
 FP_TYPE* llsm_warp_frequency(FP_TYPE fmin, FP_TYPE fmax, int n,
   FP_TYPE warp_const) {
-  FP_TYPE* freq = calloc(n, sizeof(FP_TYPE));
+  FP_TYPE* freq = (FP_TYPE*)calloc(n, sizeof(FP_TYPE));
   FP_TYPE wmin = 5000.0 * log(1.0 + fmin / warp_const);
   FP_TYPE wmax = 5000.0 * log(1.0 + fmax / warp_const);
   for(int i = 0; i < n; i ++)
@@ -277,7 +277,7 @@ FP_TYPE* llsm_warp_frequency(FP_TYPE fmin, FP_TYPE fmax, int n,
 
 FP_TYPE* llsm_spectral_mean(FP_TYPE* spectrum, int nspec, FP_TYPE fnyq,
   FP_TYPE* freq, int nfreq) {
-  FP_TYPE* env = calloc(nfreq, sizeof(FP_TYPE));
+  FP_TYPE* env = (FP_TYPE*)calloc(nfreq, sizeof(FP_TYPE));
   for(int i = 0; i < nfreq; i ++) {
     FP_TYPE fprev = i == 0 ? 0 : freq[i - 1];
     FP_TYPE fnext = i == nfreq - 1 ? freq[i] * 2 - freq[i - 1] : freq[i + 1];
@@ -307,7 +307,7 @@ FP_TYPE* llsm_spectral_mean(FP_TYPE* spectrum, int nspec, FP_TYPE fnyq,
 
 FP_TYPE* llsm_spectrum_from_envelope(FP_TYPE* freq, FP_TYPE* ampl, int nfreq,
   int nspec, FP_TYPE fnyq) {
-  FP_TYPE* faxis = calloc(nspec, sizeof(FP_TYPE));
+  FP_TYPE* faxis = (FP_TYPE*)calloc(nspec, sizeof(FP_TYPE));
   for(int i = 0; i < nspec; i ++)
     faxis[i] = (FP_TYPE)i * fnyq / nspec;
   FP_TYPE* spectrum = interp1(freq, ampl, nfreq, faxis, nspec);
@@ -327,7 +327,7 @@ int llsm_get_fftsize(FP_TYPE* f0, int nfrm, FP_TYPE fs, FP_TYPE rel_winsize) {
 
 FP_TYPE* llsm_synthesize_harmonic_frame(FP_TYPE* ampl, FP_TYPE* phse, int nhar,
   FP_TYPE f0, int nx) {
-  FP_TYPE* freq = malloc(nhar * sizeof(FP_TYPE));
+  FP_TYPE* freq = (FP_TYPE*)malloc(nhar * sizeof(FP_TYPE));
   for(int i = 0; i < nhar; i ++)
     freq[i] = f0 * (i + 1.0);
   FP_TYPE* y = gensins(freq, ampl, phse, nhar, 1.0, nx);
@@ -337,8 +337,8 @@ FP_TYPE* llsm_synthesize_harmonic_frame(FP_TYPE* ampl, FP_TYPE* phse, int nhar,
 
 FP_TYPE* llsm_synthesize_harmonic_frame_iczt(FP_TYPE* ampl, FP_TYPE* phse,
   int nhar, FP_TYPE f0, int nx) {
-  FP_TYPE* yr = malloc(nx * sizeof(FP_TYPE));
-  FP_TYPE* re = calloc(max(nhar + 1, nx) * 2, sizeof(FP_TYPE));
+  FP_TYPE* yr = (FP_TYPE*)malloc(nx * sizeof(FP_TYPE));
+  FP_TYPE* re = (FP_TYPE*)calloc(max(nhar + 1, nx) * 2, sizeof(FP_TYPE));
   FP_TYPE* im = re + max(nhar + 1, nx);
   FP_TYPE omega0 = 2.0 * M_PI * f0;
   for(int i = 0; i < nhar; i ++) {
@@ -351,7 +351,7 @@ FP_TYPE* llsm_synthesize_harmonic_frame_iczt(FP_TYPE* ampl, FP_TYPE* phse,
 }
 
 FP_TYPE* llsm_generate_white_noise(int nx) {
-  FP_TYPE* ret = calloc(nx, sizeof(FP_TYPE));
+  FP_TYPE* ret = (FP_TYPE*)calloc(nx, sizeof(FP_TYPE));
   int ntemplate = min(20000, nx);
   for(int i = 0; i < ntemplate; i ++)
     ret[i] = randn(0, 1);
@@ -362,7 +362,7 @@ FP_TYPE* llsm_generate_white_noise(int nx) {
 
 static FP_TYPE* stretch_stationary_noise(FP_TYPE* x, int nx, int ny,
   int overlap) {
-  FP_TYPE* y = calloc(ny, sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)calloc(ny, sizeof(FP_TYPE));
   for(int i = 0; i < min(nx, ny); i ++) y[i] = x[i];
   if(ny <= nx) return y;
   int head = nx;
@@ -431,7 +431,7 @@ void llsm_lipfilter_reim(FP_TYPE radius, FP_TYPE f0, int nhar,
 
 FP_TYPE* llsm_harmonic_spectrum(FP_TYPE* ampl, int nhar, FP_TYPE f0,
   int nfft) {
-  FP_TYPE* X = calloc(nfft / 2 + 1, sizeof(FP_TYPE));
+  FP_TYPE* X = (FP_TYPE*)calloc(nfft / 2 + 1, sizeof(FP_TYPE));
   int nX = nfft / 2 + 1;
   int T = 3.0 / f0;
   int width = ceil(f0 * nfft * 1.5);
@@ -464,7 +464,7 @@ static FP_TYPE decompress_logspectrum(FP_TYPE x) {
 
 FP_TYPE* llsm_harmonic_envelope(FP_TYPE* ampl, int nhar, FP_TYPE f0,
   int nfft) {
-  FP_TYPE* compressed_ampl = calloc(nhar, sizeof(FP_TYPE));
+  FP_TYPE* compressed_ampl = (FP_TYPE*)calloc(nhar, sizeof(FP_TYPE));
   FP_TYPE peak = log(maxfp(ampl, nhar));
   for(int i = 0; i < nhar; i ++)
     compressed_ampl[i] = exp(compress_logspectrum(log(ampl[i]) - peak));
@@ -483,9 +483,9 @@ FP_TYPE* llsm_harmonic_minphase(FP_TYPE* ampl, int nhar) {
   //   minimum-phase response; subsample the phase response at harmonic
   //   frequencies.
   int nfft = max(64, pow(2, ceil(log2(nhar) + 2)));
-  FP_TYPE* har_idx  = calloc(nhar + 1, sizeof(FP_TYPE));
-  FP_TYPE* har_ampl = calloc(nhar + 1, sizeof(FP_TYPE));
-  FP_TYPE* fft_idx  = calloc(nfft / 2 + 1, sizeof(FP_TYPE));
+  FP_TYPE* har_idx = (FP_TYPE*)calloc(nhar + 1, sizeof(FP_TYPE));
+  FP_TYPE* har_ampl = (FP_TYPE*)calloc(nhar + 1, sizeof(FP_TYPE));
+  FP_TYPE* fft_idx = (FP_TYPE*)calloc(nfft / 2 + 1, sizeof(FP_TYPE));
   for(int i = 0; i < nhar; i ++) {
     har_idx [i + 1] = (i + 1.0) / (nhar + 1.0) * nfft / 2.0;
     har_ampl[i + 1] = log(ampl[i] + 1e-10);
@@ -513,13 +513,13 @@ typedef struct {
 
 llsm_cached_glottal_model* llsm_create_cached_glottal_model(FP_TYPE* param,
   int nparam, int nhar) {
-  cached_glottal_model* ret = malloc(sizeof(cached_glottal_model));
+  cached_glottal_model* ret = (cached_glottal_model*)malloc(sizeof(cached_glottal_model));
   ret -> nresp = nparam;
   ret -> nhar = nhar;
-  ret -> power = calloc(nparam, sizeof(FP_TYPE*));
-  ret -> param = calloc(nparam, sizeof(FP_TYPE));
+  ret -> power = (FP_TYPE**)calloc(nparam, sizeof(FP_TYPE*));
+  ret -> param = (FP_TYPE*)calloc(nparam, sizeof(FP_TYPE));
   FP_TYPE f0 = 200.0; // the shape of LF model is f0-independent
-  FP_TYPE* freq = calloc(nhar, sizeof(FP_TYPE));
+  FP_TYPE* freq = (FP_TYPE*)calloc(nhar, sizeof(FP_TYPE));
   for(int i = 0; i < nhar; i ++) freq[i] = f0 * (1.0 + i);
   for(int i = 0; i < nparam; i ++) {
     ret -> param[i] = param[i];
@@ -546,12 +546,12 @@ FP_TYPE llsm_spectral_glottal_fitting(FP_TYPE* ampl, int nhar,
   llsm_cached_glottal_model* model_) {
   cached_glottal_model* model = (cached_glottal_model*)model_;
   nhar = min(nhar, model -> nhar);
-  FP_TYPE* power = calloc(nhar, sizeof(FP_TYPE));
+  FP_TYPE* power = (FP_TYPE*)calloc(nhar, sizeof(FP_TYPE));
   for(int i = 0; i < nhar; i ++) {
     power[i] = ampl[i] * ampl[i];
   }
-  FP_TYPE* distance = calloc(model -> nresp, sizeof(FP_TYPE));
-  FP_TYPE* power_model = calloc(nhar, sizeof(FP_TYPE));
+  FP_TYPE* distance = (FP_TYPE*)calloc(model -> nresp, sizeof(FP_TYPE));
+  FP_TYPE* power_model = (FP_TYPE*)calloc(nhar, sizeof(FP_TYPE));
   for(int i = 0; i < model -> nresp; i ++) {
     FP_TYPE lgavg = 0;
     for(int j = 0; j < nhar; j ++) lgavg += log(power[j]) / nhar;
@@ -576,7 +576,7 @@ FP_TYPE llsm_spectral_glottal_fitting(FP_TYPE* ampl, int nhar,
 
 // https://www.dsprelated.com/showarticle/1068.php
 FP_TYPE* llsm_smoothing_filter(FP_TYPE* x, int nx, int order) {
-  FP_TYPE* y = calloc(nx, sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)calloc(nx, sizeof(FP_TYPE));
   if(nx < order) {
     memcpy(y, x, nx * sizeof(FP_TYPE));
     return y;

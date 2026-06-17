@@ -25,13 +25,13 @@
 #include "constants.h"
 
 llsm_aoptions* llsm_create_aoptions() {
-  llsm_aoptions* ret = malloc(sizeof(llsm_aoptions));
+  llsm_aoptions* ret = (llsm_aoptions*)malloc(sizeof(llsm_aoptions));
   ret -> thop = 0.005;
   ret -> maxnhar = 100;
   ret -> maxnhar_e = 4;
   ret -> npsd = 256;
   ret -> nchannel = 4;
-  ret -> chanfreq = calloc(3, sizeof(FP_TYPE));
+  ret -> chanfreq = (FP_TYPE*)calloc(3, sizeof(FP_TYPE));
   ret -> chanfreq[0] = 2000.0;
   ret -> chanfreq[1] = 4000.0;
   ret -> chanfreq[2] = 8000.0;
@@ -76,7 +76,7 @@ llsm_container* llsm_aoptions_toconf(llsm_aoptions* src, FP_TYPE fnyq) {
 }
 
 llsm_soptions* llsm_create_soptions(FP_TYPE fs) {
-  llsm_soptions* ret = malloc(sizeof(llsm_soptions));
+  llsm_soptions* ret = (llsm_soptions*)malloc(sizeof(llsm_soptions));
   ret -> fs = fs;
   // See test/test-harmonic.c for more information.
   ret -> use_iczt = 1;
@@ -94,9 +94,9 @@ void llsm_delete_soptions(llsm_soptions* dst) {
 static void llsm_analyze_harmonics(llsm_aoptions* options, FP_TYPE* x, int nx,
   FP_TYPE fs, FP_TYPE* f0, int nfrm, llsm_chunk* dst_chunk) {
 
-  int*      tmp_nhar = calloc(nfrm, sizeof(int));
-  FP_TYPE** tmp_ampl = calloc(nfrm, sizeof(FP_TYPE*));
-  FP_TYPE** tmp_phse = calloc(nfrm, sizeof(FP_TYPE*));
+  int* tmp_nhar = (int*)calloc(nfrm, sizeof(int));
+  FP_TYPE** tmp_ampl = (FP_TYPE**)calloc(nfrm, sizeof(FP_TYPE*));
+  FP_TYPE** tmp_phse = (FP_TYPE**)calloc(nfrm, sizeof(FP_TYPE*));
 
   llsm_harmonic_analysis(x, nx, fs, f0, nfrm, options -> thop,
     options -> rel_winsize, options -> maxnhar, options -> hm_method,
@@ -117,10 +117,10 @@ static void llsm_analyze_harmonics(llsm_aoptions* options, FP_TYPE* x, int nx,
 static FP_TYPE* llsm_synthesize_harmonics_l0(llsm_soptions* options,
   llsm_chunk* chunk, FP_TYPE* f0, int nfrm, FP_TYPE thop, FP_TYPE fs, int ny) {
   const int maxnhar = 2048;
-  FP_TYPE* y = calloc(ny, sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)calloc(ny, sizeof(FP_TYPE));
   int nwin = round(thop * fs) * 2;
   FP_TYPE* w = hanning(nwin);
-  FP_TYPE* phase = calloc(maxnhar, sizeof(FP_TYPE));
+  FP_TYPE* phase = (FP_TYPE*)calloc(maxnhar, sizeof(FP_TYPE));
   for(int i = 0; i < nfrm; i ++) {
     if(f0[i] == 0) continue; // skip unvoiced frames
     llsm_hmframe* hm = llsm_container_get(chunk -> frames[i], LLSM_FRAME_HM);
@@ -153,9 +153,9 @@ static FP_TYPE* llsm_synthesize_harmonics(llsm_soptions* options,
   }
 
   const int maxnhar = 2048;
-  FP_TYPE* y_hm  = calloc(ny, sizeof(FP_TYPE)); // harmonic model
-  FP_TYPE* y_pbp = calloc(ny, sizeof(FP_TYPE)); // pulse-by-pulse synthesis
-  FP_TYPE* y_mix = calloc(ny, sizeof(FP_TYPE));
+  FP_TYPE* y_hm = (FP_TYPE*)calloc(ny, sizeof(FP_TYPE)); // harmonic model
+  FP_TYPE* y_pbp = (FP_TYPE*)calloc(ny, sizeof(FP_TYPE)); // pulse-by-pulse synthesis
+  FP_TYPE* y_mix = (FP_TYPE*)calloc(ny, sizeof(FP_TYPE));
   int nwin = round(thop * fs) * 2;
   FP_TYPE* w = hanning(nwin);
   FP_TYPE* fnyq = llsm_container_get(chunk -> conf, LLSM_CONF_FNYQ);
@@ -203,8 +203,8 @@ static FP_TYPE* llsm_synthesize_harmonics(llsm_soptions* options,
     // pulse-by-pulse synthesis
     if(pbp_on || pbp_periods > 0) {
       if(num_periods > 0) {
-        FP_TYPE* offsets = calloc(num_periods, sizeof(FP_TYPE));
-        lfmodel* sources = calloc(num_periods, sizeof(lfmodel));
+        FP_TYPE* offsets = (FP_TYPE*)calloc(num_periods, sizeof(FP_TYPE));
+        lfmodel* sources = (lfmodel*)calloc(num_periods, sizeof(lfmodel));
         for(int j = 0; j < num_periods; j ++) {
           FP_TYPE delta_t = 0;
           if(pbpeff != NULL) {
@@ -289,7 +289,7 @@ static FP_TYPE* llsm_synthesize_harmonics(llsm_soptions* options,
 static FP_TYPE* llsm_synthesize_noise_envelope(llsm_soptions* options,
   llsm_chunk* chunk, int channel, FP_TYPE* f0, int nfrm, FP_TYPE thop,
   FP_TYPE fs, int ny) {
-  FP_TYPE* y = calloc(ny, sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)calloc(ny, sizeof(FP_TYPE));
   int nwin = round(thop * 2.0 * fs);
   FP_TYPE* w = hanning(nwin);
   llsm_hmframe* unvoiced_hm = llsm_create_hmframe(0);
@@ -324,8 +324,8 @@ static void llsm_analyze_noise_psd(llsm_aoptions* options, FP_TYPE* x,
   // compute spectral envelope (harmonic + noise power)
   int nfft_spgm = pow(2, ceil(log2(0.03 * fs)));
   FP_TYPE** spgm = malloc2d(nfrm, nfft_spgm / 2 + 1, sizeof(FP_TYPE));
-  int* center = calloc(nfrm, sizeof(int));
-  int* winsize_spgm = calloc(nfrm, sizeof(int));
+  int* center = (int*)calloc(nfrm, sizeof(int));
+  int* winsize_spgm = (int*)calloc(nfrm, sizeof(int));
   for(int i = 0; i < nfrm; i ++) {
     FP_TYPE* f0 = llsm_container_get(dst_chunk -> frames[i], LLSM_FRAME_F0);
     winsize_spgm[i] = f0 == NULL || f0[0] == 0 ? nwin : fs / f0[0] * 3;
@@ -350,7 +350,7 @@ static void llsm_analyze_noise_psd(llsm_aoptions* options, FP_TYPE* x,
   // PSD residual vectors
   FP_TYPE** spgm_res = malloc2d(nfrm, nspec, sizeof(FP_TYPE));
   // compute noise PSD
-  FP_TYPE* psdvec = calloc(nspec, sizeof(FP_TYPE));
+  FP_TYPE* psdvec = (FP_TYPE*)calloc(nspec, sizeof(FP_TYPE));
   for(int i = 0; i < nfrm; i ++) {
     FP_TYPE* xfrm = fetch_frame(x_res, nx, center[i], nwin);
     llsm_estimate_psd(xfrm, nwin, nfft, psdvec);
@@ -358,9 +358,9 @@ static void llsm_analyze_noise_psd(llsm_aoptions* options, FP_TYPE* x,
       spgm_psd[j][i] = log(max(1e-10, psdvec[j]));
     free(xfrm);
   }
-  FP_TYPE* Q = calloc(nfrm, sizeof(FP_TYPE)); // process variance
-  FP_TYPE* R = calloc(nfrm, sizeof(FP_TYPE)); // observation variance
-  FP_TYPE* P = calloc(nfrm, sizeof(FP_TYPE)); // forward posterior
+  FP_TYPE* Q = (FP_TYPE*)calloc(nfrm, sizeof(FP_TYPE)); // process variance
+  FP_TYPE* R = (FP_TYPE*)calloc(nfrm, sizeof(FP_TYPE)); // observation variance
+  FP_TYPE* P = (FP_TYPE*)calloc(nfrm, sizeof(FP_TYPE)); // forward posterior
   for(int i = 0; i < nfrm; i ++) R[i] = LOGCHI2VAR;
   for(int j = 0; j < nspec; j ++) {
     // moving statistics -> process variance
@@ -418,13 +418,13 @@ static void llsm_analyze_noise_envelope(llsm_aoptions* options,
   FP_TYPE* x, FP_TYPE* x_res, int nx, FP_TYPE fs, FP_TYPE* f0,
   int nfrm, llsm_chunk* dst_chunk) {
 
-  int*      tmp_nhar = calloc(nfrm, sizeof(int));
-  FP_TYPE** tmp_ampl = calloc(nfrm, sizeof(FP_TYPE*));
-  FP_TYPE** tmp_phse = calloc(nfrm, sizeof(FP_TYPE*));
+  int* tmp_nhar = (int*)calloc(nfrm, sizeof(int));
+  FP_TYPE** tmp_ampl = (FP_TYPE**)calloc(nfrm, sizeof(FP_TYPE*));
+  FP_TYPE** tmp_phse = (FP_TYPE**)calloc(nfrm, sizeof(FP_TYPE*));
 
-  FP_TYPE*  tmp_dc   = calloc(nfrm, sizeof(FP_TYPE));
-  int*      center   = calloc(nfrm, sizeof(int));
-  int*      nwin     = calloc(nfrm, sizeof(int));
+  FP_TYPE* tmp_dc = (FP_TYPE*)calloc(nfrm, sizeof(FP_TYPE));
+  int* center = (int*)calloc(nfrm, sizeof(int));
+  int* nwin = (int*)calloc(nfrm, sizeof(int));
   for(int i = 0; i < nfrm; i ++) {
     center[i] = round(i * options -> thop * fs);
     nwin[i] = round((f0[i] == 0 ? options -> thop * 2 : 2.0 / f0[i]) * fs);
@@ -497,7 +497,7 @@ llsm_chunk* llsm_analyze(llsm_aoptions* options, FP_TYPE* x, int nx,
   llsm_analyze_harmonics(options, x, nx, fs, f0, nfrm, ret);
   FP_TYPE* x_sin = llsm_synthesize_harmonics_l0(NULL, ret, f0, nfrm,
     options -> thop, fs, nx);
-  FP_TYPE* x_res = calloc(nx, sizeof(FP_TYPE));
+  FP_TYPE* x_res = (FP_TYPE*)calloc(nx, sizeof(FP_TYPE));
   for(int i = 0; i < nx; i ++) x_res[i] = x[i] - x_sin[i];
   free(x_sin);
   if(x_ap != NULL) *x_ap = x_res;
@@ -534,7 +534,7 @@ static int llsm_synthesis_check_integrity(llsm_chunk* src) {
 
 static FP_TYPE* llsm_synthesize_noise_excitation(llsm_soptions* options,
   llsm_chunk* src, FP_TYPE* f0, int nfrm, FP_TYPE thop, FP_TYPE fs, int ny) {
-  FP_TYPE* y = calloc(ny, sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)calloc(ny, sizeof(FP_TYPE));
   FP_TYPE* chanfreq = llsm_container_get(src -> conf, LLSM_CONF_CHANFREQ);
   int nchannel = *((int*)llsm_container_get(src -> conf, LLSM_CONF_NCHANNEL));
   for(int c = 0; c < nchannel; c ++) {
@@ -566,17 +566,17 @@ static FP_TYPE* llsm_filter_noise(llsm_chunk* src, int nfrm, FP_TYPE thop,
   // at least 20% padding
   int nfft = pow(2, ceil(log2(nwin * 1.2 + nfade * 2)));
   int nspec = nfft / 2 + 1;
-  FP_TYPE* psd = calloc(nspec, sizeof(FP_TYPE));
-  FP_TYPE* fftbuffer = calloc(nfft * 4, sizeof(FP_TYPE));
+  FP_TYPE* psd = (FP_TYPE*)calloc(nspec, sizeof(FP_TYPE));
+  FP_TYPE* fftbuffer = (FP_TYPE*)calloc(nfft * 4, sizeof(FP_TYPE));
   FP_TYPE* x_re = fftbuffer;
   FP_TYPE* x_im = fftbuffer + nfft;
 
   int npsd = *((int*)llsm_container_get(src -> conf, LLSM_CONF_NPSD));
   FP_TYPE fnyq = *((FP_TYPE*)llsm_container_get(src -> conf, LLSM_CONF_FNYQ));
 
-  FP_TYPE* y = calloc(nx, sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)calloc(nx, sizeof(FP_TYPE));
   FP_TYPE* src_axis = linspace(0, fnyq, npsd);
-  FP_TYPE* src_psd = calloc(npsd, sizeof(FP_TYPE));
+  FP_TYPE* src_psd = (FP_TYPE*)calloc(npsd, sizeof(FP_TYPE));
   // STFT -> PSD -> diff -> filter -> ISTFT
   for(int i = 0; i < nfrm; i ++) {
     llsm_nmframe* nm = llsm_container_get(src -> frames[i], LLSM_FRAME_NM);
@@ -641,7 +641,7 @@ llsm_output* llsm_synthesize(llsm_soptions* options, llsm_chunk* src) {
   FP_TYPE* f0 = llsm_chunk_getf0(src, & nfrm);
 
   int ny = round((nfrm + 1) * thop * fs);
-  llsm_output* ret = malloc(sizeof(llsm_output));
+  llsm_output* ret = (llsm_output*)malloc(sizeof(llsm_output));
   ret -> ny = ny;
   ret -> fs = fs;
 
@@ -654,7 +654,7 @@ llsm_output* llsm_synthesize(llsm_soptions* options, llsm_chunk* src) {
   FP_TYPE* y_nos = llsm_filter_noise(src, nfrm, thop, fs, y_exc, ny);
   ret -> y_noise = y_nos;
 
-  ret -> y = calloc(ny, sizeof(FP_TYPE));
+  ret -> y = (FP_TYPE*)calloc(ny, sizeof(FP_TYPE));
   for(int i = 0; i < ny; i ++)
     ret -> y[i] = y_sin[i] + y_nos[i];
 
@@ -674,7 +674,7 @@ void llsm_delete_output(llsm_output* dst) {
 FP_TYPE* llsm_chunk_getf0(llsm_chunk* src, int* dst_nfrm) {
   int* nfrm = llsm_container_get(src -> conf, LLSM_CONF_NFRM);
   if(nfrm == NULL) return NULL;
-  FP_TYPE* f0 = calloc(*nfrm, sizeof(FP_TYPE));
+  FP_TYPE* f0 = (FP_TYPE*)calloc(*nfrm, sizeof(FP_TYPE));
   *dst_nfrm = *nfrm;
   for(int i = 0; i < *nfrm; i ++) {
     FP_TYPE* if0 = llsm_container_get(src -> frames[i], LLSM_FRAME_F0);

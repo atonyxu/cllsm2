@@ -23,9 +23,9 @@
 #include "dsputils.h"
 
 llsm_hmframe* llsm_create_hmframe(int nhar) {
-  llsm_hmframe* ret = malloc(sizeof(llsm_hmframe));
-  ret -> ampl = calloc(nhar, sizeof(FP_TYPE));
-  ret -> phse = calloc(nhar, sizeof(FP_TYPE));
+  llsm_hmframe* ret = (llsm_hmframe*)malloc(sizeof(llsm_hmframe));
+  ret -> ampl = (FP_TYPE*)calloc(nhar, sizeof(FP_TYPE));
+  ret -> phse = (FP_TYPE*)calloc(nhar, sizeof(FP_TYPE));
   ret -> nhar = nhar;
   return ret;
 }
@@ -39,8 +39,8 @@ llsm_hmframe* llsm_copy_hmframe(llsm_hmframe* src) {
 void llsm_copy_hmframe_inplace(llsm_hmframe* dst, llsm_hmframe* src) {
   int memsize = sizeof(FP_TYPE) * src -> nhar;
   if(dst -> nhar < src -> nhar) {
-    dst -> ampl = realloc(dst -> ampl, memsize);
-    dst -> phse = realloc(dst -> phse, memsize);
+    dst -> ampl = (FP_TYPE*)realloc(dst -> ampl, memsize);
+    dst -> phse = (FP_TYPE*)realloc(dst -> phse, memsize);
   }
   memcpy(dst -> ampl, src -> ampl, memsize);
   memcpy(dst -> phse, src -> phse, memsize);
@@ -60,7 +60,7 @@ void llsm_hmframe_phaseshift(llsm_hmframe* dst, FP_TYPE theta) {
 }
 
 FP_TYPE* llsm_hmframe_harpsd(llsm_hmframe* src, int db_scale) {
-  FP_TYPE* psd = calloc(src -> nhar, sizeof(FP_TYPE));
+  FP_TYPE* psd = (FP_TYPE*)calloc(src -> nhar, sizeof(FP_TYPE));
   for(int i = 0; i < src -> nhar; i ++) {
     psd[i] = src -> ampl[i] * src -> ampl[i] * 0.5;
     if(db_scale) psd[i] = 10.0 * log10(psd[i]);
@@ -69,10 +69,10 @@ FP_TYPE* llsm_hmframe_harpsd(llsm_hmframe* src, int db_scale) {
 }
 
 llsm_nmframe* llsm_create_nmframe(int nchannel, int nhar_e, int npsd) {
-  llsm_nmframe* ret = malloc(sizeof(llsm_nmframe));
-  ret -> eenv = calloc(nchannel, sizeof(llsm_hmframe*));
-  ret -> edc = calloc(nchannel, sizeof(FP_TYPE));
-  ret -> psd = calloc(npsd, sizeof(FP_TYPE));
+  llsm_nmframe* ret = (llsm_nmframe*)malloc(sizeof(llsm_nmframe));
+  ret -> eenv = (llsm_hmframe**)calloc(nchannel, sizeof(llsm_hmframe*));
+  ret -> edc = (FP_TYPE*)calloc(nchannel, sizeof(FP_TYPE));
+  ret -> psd = (FP_TYPE*)calloc(npsd, sizeof(FP_TYPE));
   ret -> npsd = npsd;
   ret -> nchannel = nchannel;
 
@@ -91,13 +91,13 @@ llsm_nmframe* llsm_create_nmframe(int nchannel, int nhar_e, int npsd) {
 
 void llsm_copy_nmframe_inplace(llsm_nmframe* dst, llsm_nmframe* src) {
   if(dst -> npsd < src -> npsd)
-    dst -> psd = realloc(dst -> psd, sizeof(FP_TYPE) * src -> npsd);
+    dst -> psd = (FP_TYPE*)realloc(dst -> psd, sizeof(FP_TYPE) * src -> npsd);
   memcpy(dst -> psd, src -> psd, sizeof(FP_TYPE) * src -> npsd);
   dst -> npsd = src -> npsd;
 
   if(dst -> nchannel < src -> nchannel) {
-    dst -> edc = realloc(dst -> edc, sizeof(FP_TYPE) * src -> nchannel);
-    dst -> eenv = realloc(dst -> eenv,
+    dst -> edc = (FP_TYPE*)realloc(dst -> edc, sizeof(FP_TYPE) * src -> nchannel);
+    dst -> eenv = (llsm_hmframe**)realloc(dst -> eenv,
       sizeof(llsm_hmframe*) * src -> nchannel);
     for(int i = dst -> nchannel; i < src -> nchannel; i ++)
       dst -> eenv[i] = llsm_create_hmframe(0);
@@ -129,7 +129,7 @@ void llsm_delete_nmframe(llsm_nmframe* dst) {
 }
 
 static FP_TYPE* copy_fp(FP_TYPE* src) {
-  FP_TYPE* ret = malloc(sizeof(FP_TYPE));
+  FP_TYPE* ret = (FP_TYPE*)malloc(sizeof(FP_TYPE));
   ret[0] = src[0];
   return ret;
 }
@@ -139,7 +139,7 @@ llsm_container* llsm_create_frame(int nhar, int nchannel, int nhar_e,
   llsm_container* ret = llsm_create_container(3);
   llsm_hmframe* hm = llsm_create_hmframe(nhar);
   llsm_nmframe* nm = llsm_create_nmframe(nchannel, nhar_e, npsd);
-  FP_TYPE* f0 = malloc(sizeof(FP_TYPE));
+  FP_TYPE* f0 = (FP_TYPE*)malloc(sizeof(FP_TYPE));
   f0[0] = 0;
   llsm_container_attach(ret, LLSM_FRAME_F0, f0, free, copy_fp);
   llsm_container_attach(ret, LLSM_FRAME_HM, hm, llsm_delete_hmframe,
@@ -229,7 +229,7 @@ int llsm_frame_checklayer1(llsm_container* src) {
 }
 
 llsm_pbpeffect* llsm_create_pbpeffect(llsm_fgfm modifier, void* info) {
-  llsm_pbpeffect* ret = malloc(sizeof(llsm_pbpeffect));
+  llsm_pbpeffect* ret = (llsm_pbpeffect*)malloc(sizeof(llsm_pbpeffect));
   ret -> modifier = modifier;
   ret -> info = info;
   return ret;

@@ -46,9 +46,9 @@ FP_TYPE opt_med25(FP_TYPE* x);
 
 #define def_transpose(nbit, type) \
   static type** cig_transpose_##nbit(type** ptr, size_t m, size_t n) { \
-    type** ret = malloc(n * sizeof(type*)); \
+    type** ret = (type**)malloc(n * sizeof(type*)); \
     for(size_t i = 0; i < n; i ++) { \
-      ret[i] = malloc(m * sizeof(type)); \
+      ret[i] = (type*)malloc(m * sizeof(type)); \
       for(size_t j = 0; j < m; j ++) \
         ret[i][j] = ptr[j][i]; \
     } \
@@ -110,13 +110,13 @@ int compare_sort_struct(const void* a, const void* b) {
 }
 
 FP_TYPE* cig_sort(FP_TYPE* x, int nx, int* outidx) {
-  sort_struct* s = malloc(nx * sizeof(sort_struct));
+  sort_struct* s = (sort_struct*)malloc(nx * sizeof(sort_struct));
   for(int i = 0; i < nx; i ++) {
     s[i].val = x[i];
     s[i].idx = i;
   }
   qsort(s, nx, sizeof(sort_struct), compare_sort_struct);
-  FP_TYPE* y = malloc(nx * sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)malloc(nx * sizeof(FP_TYPE));
   for(int i = 0; i < nx; i ++)
     y[i] = s[i].val;
   if(outidx != NULL)
@@ -127,7 +127,7 @@ FP_TYPE* cig_sort(FP_TYPE* x, int nx, int* outidx) {
 }
 
 FP_TYPE cig_medianfp(FP_TYPE* x, int nx) {
-  FP_TYPE* x_ = malloc(nx * sizeof(FP_TYPE));
+  FP_TYPE* x_ = (FP_TYPE*)malloc(nx * sizeof(FP_TYPE));
   memcpy(x_, x, nx * sizeof(FP_TYPE));
   FP_TYPE ret = nx % 2 == 1 ? cig_qselect(x_, nx, nx / 2) :
     (cig_qselect(x_, nx, nx / 2 - 1) + cig_qselect(x_, nx, nx / 2)) * 0.5;
@@ -136,7 +136,7 @@ FP_TYPE cig_medianfp(FP_TYPE* x, int nx) {
 }
 
 FP_TYPE* cig_xcorr(FP_TYPE* x, FP_TYPE* y, int nx, int maxlag) {
-  FP_TYPE* R = calloc(maxlag, sizeof(FP_TYPE));
+  FP_TYPE* R = (FP_TYPE*)calloc(maxlag, sizeof(FP_TYPE));
   for(int m = 0; m < maxlag; m ++) {
     for(int i = 0; i < nx - m; i ++)
       R[m] += x[m + i] * y[i];
@@ -213,11 +213,11 @@ cplx cig_polyval(cplx* poly, int np, cplx x) {
 // Durand-Kerner method for finding polynomial roots
 cplx* cig_roots(cplx* poly, int np) {
   if(np < 2) return NULL;
-  cplx* r0 = calloc(np - 1, sizeof(cplx));
-  cplx* r1 = calloc(np - 1, sizeof(cplx));
+  cplx* r0 = (cplx*)calloc(np - 1, sizeof(cplx));
+  cplx* r1 = (cplx*)calloc(np - 1, sizeof(cplx));
 
   // normalize polynomial coefficients
-  cplx* a = calloc(np, sizeof(cplx));
+  cplx* a = (cplx*)calloc(np, sizeof(cplx));
   for(int i = 0; i < np; i ++)
     a[i] = c_div(poly[i], poly[0]);
 
@@ -274,7 +274,7 @@ cplx* cig_roots(cplx* poly, int np) {
 }
 
 int* cig_ppivot(FP_TYPE* A, int n) {
-  int* permidx = malloc(n * sizeof(int));
+  int* permidx = (int*)malloc(n * sizeof(int));
   for(int i = 0; i < n; i ++) {
     // compare diagonal entry with the rest in the same column
     int maxrow = i; FP_TYPE maxval = 0;
@@ -390,8 +390,8 @@ int cig_find_extrema(FP_TYPE* x, int lidx, int uidx, int orient) {
 
 FP_TYPE* cig_gensins(FP_TYPE* freq, FP_TYPE* ampl, FP_TYPE* phse,
   int nsin, int fs, int n) {
-  FP_TYPE* x = calloc(n, sizeof(FP_TYPE));
-  FP_TYPE* s = calloc(n, sizeof(FP_TYPE));
+  FP_TYPE* x = (FP_TYPE*)calloc(n, sizeof(FP_TYPE));
+  FP_TYPE* s = (FP_TYPE*)calloc(n, sizeof(FP_TYPE));
   for(int i = 0; i < nsin; i ++) {
     FP_TYPE i_f = freq[i];
     FP_TYPE i_a = ampl[i];
@@ -437,7 +437,7 @@ static FP_TYPE* get_window(char* name, int nw, int optlv) {
 }
 
 FP_TYPE* cig_dct(FP_TYPE* x, int nx) {
-  FP_TYPE* ret = calloc(nx, sizeof(FP_TYPE));
+  FP_TYPE* ret = (FP_TYPE*)calloc(nx, sizeof(FP_TYPE));
   for(int k = 0; k < nx; k ++)
     for(int n = 0; n < nx; n ++)
       ret[k] += x[n] * cos_2(M_PI / nx * (n + 0.5) * k);
@@ -488,7 +488,7 @@ void cig_fft(FP_TYPE* xr, FP_TYPE* xi, FP_TYPE* yr, FP_TYPE* yi,
 void cig_czt(FP_TYPE* xr, FP_TYPE* xi, FP_TYPE* yr, FP_TYPE* yi,
   FP_TYPE omega0, int n) {
   int m = pow(2, ceil(log2(n)) + 1);
-  FP_TYPE* buffer = calloc(m * 6, sizeof(FP_TYPE));
+  FP_TYPE* buffer = (FP_TYPE*)calloc(m * 6, sizeof(FP_TYPE));
   FP_TYPE* xq = buffer + 0;
   FP_TYPE* wq = buffer + 2 * m;
   FP_TYPE* Wq = buffer + 4 * m;
@@ -573,8 +573,8 @@ void cig_idft(FP_TYPE* xr, FP_TYPE* xi, FP_TYPE* yr, FP_TYPE* yi, int n) {
 }
 
 FP_TYPE* cig_levinson(FP_TYPE* R, int n) {
-  FP_TYPE* a = calloc(n, sizeof(FP_TYPE));
-  FP_TYPE* a_new = calloc(n, sizeof(FP_TYPE));
+  FP_TYPE* a = (FP_TYPE*)calloc(n, sizeof(FP_TYPE));
+  FP_TYPE* a_new = (FP_TYPE*)calloc(n, sizeof(FP_TYPE));
   FP_TYPE k = -R[1] / (R[0] * 1.000001);
   a[0] = 1.0;
   a[1] = k;
@@ -598,8 +598,8 @@ FP_TYPE* cig_levinson(FP_TYPE* R, int n) {
 FP_TYPE* cig_winfir(int order, FP_TYPE cutoff, FP_TYPE cutoff2, char* type, char* window) {
   FP_TYPE cutk  = cutoff  * order;
   FP_TYPE cutk2 = cutoff2 * order;
-  FP_TYPE* freqrsp = calloc(order, sizeof(FP_TYPE));
-  FP_TYPE* timersp = calloc(order, sizeof(FP_TYPE));
+  FP_TYPE* freqrsp = (FP_TYPE*)calloc(order, sizeof(FP_TYPE));
+  FP_TYPE* timersp = (FP_TYPE*)calloc(order, sizeof(FP_TYPE));
 
   FP_TYPE* w = get_window(window, order, 3);
   
@@ -640,8 +640,8 @@ FP_TYPE* cig_winfir(int order, FP_TYPE cutoff, FP_TYPE cutoff2, char* type, char
 }
 
 FP_TYPE* cig_convolution(FP_TYPE* x, FP_TYPE* h, int nx, int nh) {
-  FP_TYPE* xpad = calloc(nx + nh * 2 - 1, sizeof(FP_TYPE));
-  FP_TYPE* y = calloc(nx + nh - 1, sizeof(FP_TYPE));
+  FP_TYPE* xpad = (FP_TYPE*)calloc(nx + nh * 2 - 1, sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)calloc(nx + nh - 1, sizeof(FP_TYPE));
   for(int i = 0; i < nx; i ++)
     xpad[i + nh - 1] = x[i];
   for(int i = 0; i < nx + nh - 1; i ++)
@@ -654,7 +654,7 @@ FP_TYPE* cig_convolution(FP_TYPE* x, FP_TYPE* h, int nx, int nh) {
 // unrolled filters
 
 static FP_TYPE* cig_filter_order6(FP_TYPE* b, FP_TYPE* a, FP_TYPE* x, int nx) {
-  FP_TYPE* y = calloc(nx + 5, sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)calloc(nx + 5, sizeof(FP_TYPE));
   for(int i = 5; i < nx; i ++) {
       y[i] -= a[1] * y[i - 1] + a[2] * y[i - 2] + a[3] * y[i - 3] + a[4] * y[i - 4] + a[5] * y[i - 5];
       y[i] += b[0] * x[i - 0] + b[1] * x[i - 1] + b[2] * x[i - 2] + b[3] * x[i - 3] + b[4] * x[i - 4] + b[5] * x[i - 5];
@@ -663,7 +663,7 @@ static FP_TYPE* cig_filter_order6(FP_TYPE* b, FP_TYPE* a, FP_TYPE* x, int nx) {
 }
 
 static FP_TYPE* cig_filter_order5(FP_TYPE* b, FP_TYPE* a, FP_TYPE* x, int nx) {
-  FP_TYPE* y = calloc(nx + 4, sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)calloc(nx + 4, sizeof(FP_TYPE));
   for(int i = 4; i < nx; i ++) {
       y[i] -= a[1] * y[i - 1] + a[2] * y[i - 2] + a[3] * y[i - 3] + a[4] * y[i - 4];
       y[i] += b[0] * x[i - 0] + b[1] * x[i - 1] + b[2] * x[i - 2] + b[3] * x[i - 3] + b[4] * x[i - 4];
@@ -672,7 +672,7 @@ static FP_TYPE* cig_filter_order5(FP_TYPE* b, FP_TYPE* a, FP_TYPE* x, int nx) {
 }
 
 static FP_TYPE* cig_filter_order4(FP_TYPE* b, FP_TYPE* a, FP_TYPE* x, int nx) {
-  FP_TYPE* y = calloc(nx + 3, sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)calloc(nx + 3, sizeof(FP_TYPE));
   for(int i = 3; i < nx; i ++) {
       y[i] -= a[1] * y[i - 1] + a[2] * y[i - 2] + a[3] * y[i - 3];
       y[i] += b[0] * x[i - 0] + b[1] * x[i - 1] + b[2] * x[i - 2] + b[3] * x[i - 3];
@@ -681,7 +681,7 @@ static FP_TYPE* cig_filter_order4(FP_TYPE* b, FP_TYPE* a, FP_TYPE* x, int nx) {
 }
 
 static FP_TYPE* cig_filter_order3(FP_TYPE* b, FP_TYPE* a, FP_TYPE* x, int nx) {
-  FP_TYPE* y = calloc(nx + 2, sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)calloc(nx + 2, sizeof(FP_TYPE));
   for(int i = 2; i < nx; i ++) {
       y[i] -= a[1] * y[i - 1] + a[2] * y[i - 2];
       y[i] += b[0] * x[i - 0] + b[1] * x[i - 1] + b[2] * x[i - 2];
@@ -690,7 +690,7 @@ static FP_TYPE* cig_filter_order3(FP_TYPE* b, FP_TYPE* a, FP_TYPE* x, int nx) {
 }
 
 static FP_TYPE* cig_filter_order2(FP_TYPE* b, FP_TYPE* a, FP_TYPE* x, int nx) {
-  FP_TYPE* y = calloc(nx + 1, sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)calloc(nx + 1, sizeof(FP_TYPE));
   for(int i = 1; i < nx; i ++) {
       y[i] -= a[1] * y[i - 1];
       y[i] += b[0] * x[i - 0] + b[1] * x[i - 1];
@@ -713,7 +713,7 @@ FP_TYPE* cig_filter(FP_TYPE* b, int nb, FP_TYPE* a, int na, FP_TYPE* x, int nx) 
   }
 
   int nh = max(na, nb);
-  FP_TYPE* y = calloc(nx + nh - 1, sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)calloc(nx + nh - 1, sizeof(FP_TYPE));
   for(int i = 0; i < nh; i ++) {
     for(int k = 1; k < na; k ++)
       if(i - k >= 0)
@@ -733,7 +733,7 @@ FP_TYPE* cig_filter(FP_TYPE* b, int nb, FP_TYPE* a, int na, FP_TYPE* x, int nx) 
 
 FP_TYPE* cig_kalmanf1d(FP_TYPE* z, FP_TYPE* Q, FP_TYPE* R, int nz, FP_TYPE x0,
   FP_TYPE* P, FP_TYPE* L_) {
-  FP_TYPE* x = calloc(nz, sizeof(FP_TYPE));
+  FP_TYPE* x = (FP_TYPE*)calloc(nz, sizeof(FP_TYPE));
   FP_TYPE  xpred = x0;
   FP_TYPE  Ppred = Q[0];
   FP_TYPE  L = 0;
@@ -756,7 +756,7 @@ FP_TYPE* cig_kalmanf1d(FP_TYPE* z, FP_TYPE* Q, FP_TYPE* R, int nz, FP_TYPE x0,
 }
 
 FP_TYPE* cig_kalmans1d(FP_TYPE* y, FP_TYPE* P, FP_TYPE* Q, int ny) {
-  FP_TYPE* x = calloc(ny, sizeof(FP_TYPE));
+  FP_TYPE* x = (FP_TYPE*)calloc(ny, sizeof(FP_TYPE));
   FP_TYPE xbackward = y[ny - 1];
   for(int t = ny - 1; t > 0; t --) {
     x[t] = xbackward;
@@ -775,7 +775,7 @@ static FP_TYPE interp_kernel(FP_TYPE x, FP_TYPE a) {
 
 // xi should be ascending while the choice of x can be arbitrary
 FP_TYPE* cig_interp(FP_TYPE* xi, FP_TYPE* yi, int ni, FP_TYPE* x, int nx) {
-  FP_TYPE* y = malloc(nx * sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)malloc(nx * sizeof(FP_TYPE));
   int srcidx = 0;
   for(int i = 0; i < nx; i ++) {
     FP_TYPE dstx = x[i];
@@ -792,7 +792,7 @@ FP_TYPE* cig_interp(FP_TYPE* xi, FP_TYPE* yi, int ni, FP_TYPE* x, int nx) {
 
 // interpolation on a uniformly sampled signal, assuming x is ascending
 FP_TYPE* cig_interpu(FP_TYPE xi0, FP_TYPE xi1, FP_TYPE* yi, int ni, FP_TYPE* x, int nx) {
-  FP_TYPE* y = malloc(nx * sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)malloc(nx * sizeof(FP_TYPE));
   int begin = 0, end = nx - 1;
   while(x[begin] < xi0 && begin < nx) {
     y[begin] = yi[0];
@@ -813,7 +813,7 @@ FP_TYPE* cig_interpu(FP_TYPE xi0, FP_TYPE xi1, FP_TYPE* yi, int ni, FP_TYPE* x, 
 }
 
 FP_TYPE* cig_sincinterpu(FP_TYPE xi0, FP_TYPE xi1, FP_TYPE* yi, int ni, FP_TYPE* x, int nx) {
-  FP_TYPE* y = malloc(nx * sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)malloc(nx * sizeof(FP_TYPE));
   for(int i = 0; i < nx; i ++) {
     FP_TYPE srcidx = (x[i] - xi0) / (xi1 - xi0) * ni;
     int ix_base = floor(srcidx);
@@ -840,8 +840,8 @@ FP_TYPE* cig_medfilt(FP_TYPE* x, int nx, int order) {
   else if(order == 25)
     ffilt = opt_med25;
 
-  FP_TYPE* y = malloc(nx * sizeof(FP_TYPE));
-  FP_TYPE* tmp = malloc(order * sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)malloc(nx * sizeof(FP_TYPE));
+  FP_TYPE* tmp = (FP_TYPE*)malloc(order * sizeof(FP_TYPE));
   int halford = order / 2;
   for(int i = 0; i < halford; i ++)
     y[i] = medianfp(x, i + 1);
@@ -863,7 +863,7 @@ FP_TYPE* cig_medfilt(FP_TYPE* x, int nx, int order) {
 
 FP_TYPE* cig_moving_avg(FP_TYPE* x, int nx, FP_TYPE halford) {
   int ihalford = halford;
-  FP_TYPE* acc = malloc((nx + ihalford * 2) * sizeof(FP_TYPE));
+  FP_TYPE* acc = (FP_TYPE*)malloc((nx + ihalford * 2) * sizeof(FP_TYPE));
 
   acc[0] = x[0];
   for(int i = 1; i <= ihalford; i ++)
@@ -873,7 +873,7 @@ FP_TYPE* cig_moving_avg(FP_TYPE* x, int nx, FP_TYPE halford) {
   for(int i = 0; i < ihalford; i ++)
     acc[nx + ihalford + i] = acc[nx + ihalford + i - 1] + x[nx - 1];
 
-  FP_TYPE* interp_idx = malloc(nx * sizeof(FP_TYPE));
+  FP_TYPE* interp_idx = (FP_TYPE*)malloc(nx * sizeof(FP_TYPE));
   for(int i = 0; i < nx; i ++) interp_idx[i] = i + halford;
   FP_TYPE* interp_upper = interp1u(-halford, nx + ihalford, acc, nx + ihalford * 2,
     interp_idx, nx);
@@ -895,7 +895,7 @@ FP_TYPE* cig_moving_avg(FP_TYPE* x, int nx, FP_TYPE halford) {
 FP_TYPE* cig_rresample(FP_TYPE* x, int nx, FP_TYPE ratio, int* ny) {
   *ny = ratio == 1.0 ? nx : round(nx * ratio);
   FP_TYPE* xlp = x;
-  FP_TYPE* y = calloc(*ny, sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)calloc(*ny, sizeof(FP_TYPE));
   if(ratio == 1.0) {
     memcpy(y, x, sizeof(FP_TYPE) * nx);
     return y;
@@ -927,14 +927,14 @@ FP_TYPE* cig_rresample(FP_TYPE* x, int nx, FP_TYPE ratio, int* ny) {
 ifdetector* cig_create_ifdetector(FP_TYPE fc, FP_TYPE fres) {
   const FP_TYPE a[4] = {0.338946, 0.481973, 0.161054, 0.018027};
   
-  ifdetector* ret = malloc(sizeof(ifdetector));
+  ifdetector* ret = (ifdetector*)malloc(sizeof(ifdetector));
   int nh = 4 / fres;
   ret -> fc = fc;
   ret -> nh = nh;
-  ret -> hr = calloc(ret -> nh, sizeof(FP_TYPE));
-  ret -> hi = calloc(ret -> nh, sizeof(FP_TYPE));
-  ret -> hdr = calloc(ret -> nh, sizeof(FP_TYPE));
-  ret -> hdi = calloc(ret -> nh, sizeof(FP_TYPE));
+  ret -> hr = (FP_TYPE*)calloc(ret -> nh, sizeof(FP_TYPE));
+  ret -> hi = (FP_TYPE*)calloc(ret -> nh, sizeof(FP_TYPE));
+  ret -> hdr = (FP_TYPE*)calloc(ret -> nh, sizeof(FP_TYPE));
+  ret -> hdi = (FP_TYPE*)calloc(ret -> nh, sizeof(FP_TYPE));
   FP_TYPE omega = 2.0 * M_PI * fc;
   FP_TYPE omegaw = 2.0 * M_PI / nh;
 
@@ -1021,9 +1021,9 @@ static FP_TYPE corr_kernel_sqrdiff(
 
 void cig_correlogram(FP_TYPE* x, int nx, int* center, int* nwin, int nfrm,
   int max_period, int method, FP_TYPE** R) {
-  double* x1 = calloc(nx + 1, sizeof(double)); // integrate x[i]
-  double* x2 = calloc(nx + 1, sizeof(double)); // integrate x^2[i]
-  FP_TYPE* xx = calloc(nx, sizeof(FP_TYPE));   // x^2[i]
+  double* x1 = (double*)calloc(nx + 1, sizeof(double)); // integrate x[i]
+  double* x2 = (double*)calloc(nx + 1, sizeof(double)); // integrate x^2[i]
+  FP_TYPE* xx = (FP_TYPE*)calloc(nx, sizeof(FP_TYPE));   // x^2[i]
   for(int i = 0; i < nx; i ++)
     x1[i + 1] = x1[i] + (double)x[i];
   for(int i = 0; i < nx; i ++)
@@ -1068,7 +1068,7 @@ void cig_correlogram(FP_TYPE* x, int nx, int* center, int* nwin, int nfrm,
 FP_TYPE** cig_invcrgm(FP_TYPE** R, int nfrm, int max_period, int fs, FP_TYPE* faxis, int nf) {
   FP_TYPE** Ri = malloc2d(nfrm, nf, sizeof(FP_TYPE*));
   FP_TYPE* Raxis = linspace(0, max_period - 1, max_period);
-  FP_TYPE* invmap = calloc(nf, sizeof(FP_TYPE));
+  FP_TYPE* invmap = (FP_TYPE*)calloc(nf, sizeof(FP_TYPE));
   for(int i = 0; i < nf; i ++)
     invmap[i] = fs / faxis[nf - i - 1];
   for(int i = 0; i < nfrm; i ++) {
@@ -1087,7 +1087,7 @@ void cig_stft_forward(FP_TYPE* x, int nx, int* center, int* nwin, int nfrm,
   FP_TYPE* norm_factor, FP_TYPE* weight_factor, FP_TYPE** Xmagn, FP_TYPE** Xphse) {
 
 # ifndef _OPENMP
-  FP_TYPE* buff = calloc(nfft * 5, sizeof(FP_TYPE));
+  FP_TYPE* buff = (FP_TYPE*)calloc(nfft * 5, sizeof(FP_TYPE));
   FP_TYPE* fftbuff = buff;
   FP_TYPE* xbuff = buff + nfft * 2;
   FP_TYPE* ybuffr = buff + nfft * 3;
@@ -1114,7 +1114,7 @@ void cig_stft_forward(FP_TYPE* x, int nx, int* center, int* nwin, int nfrm,
 # endif
   for(int t = 0; t < nfrm; t ++) {
 #   ifdef _OPENMP
-    FP_TYPE* buff = calloc(nfft * 5, sizeof(FP_TYPE));
+    FP_TYPE* buff = (FP_TYPE*)calloc(nfft * 5, sizeof(FP_TYPE));
     FP_TYPE* fftbuff = buff;
     FP_TYPE* xbuff = buff + nfft * 2;
     FP_TYPE* ybuffr = buff + nfft * 3;
@@ -1185,10 +1185,10 @@ FP_TYPE* cig_stft_backward(FP_TYPE** Xmagn, FP_TYPE** Xphse, int nhop, int nfrm,
   FP_TYPE* wfade = hanning(nfade * 2);
   
   *ny = nhop * nfrm + offset;
-  FP_TYPE* y = calloc(*ny, sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)calloc(*ny, sizeof(FP_TYPE));
   
 # ifndef _OPENMP
-  FP_TYPE* buff = calloc(nfft * 5, sizeof(FP_TYPE));
+  FP_TYPE* buff = (FP_TYPE*)calloc(nfft * 5, sizeof(FP_TYPE));
   FP_TYPE* fftbuff = buff;
   FP_TYPE* ybuff = buff + nfft * 2;
   FP_TYPE* xbuffr = buff + nfft * 3;
@@ -1200,7 +1200,7 @@ FP_TYPE* cig_stft_backward(FP_TYPE** Xmagn, FP_TYPE** Xphse, int nhop, int nfrm,
 # endif
   for(int t = 0; t < nfrm; t ++) {
 #   ifdef _OPENMP
-    FP_TYPE* buff = calloc(nfft * 5, sizeof(FP_TYPE));
+    FP_TYPE* buff = (FP_TYPE*)calloc(nfft * 5, sizeof(FP_TYPE));
     FP_TYPE* fftbuff = buff;
     FP_TYPE* ybuff = buff + nfft * 2;
     FP_TYPE* xbuffr = buff + nfft * 3;
@@ -1270,15 +1270,15 @@ static inline FP_TYPE barkmask(FP_TYPE z) {
 }
 
 filterbank* cig_create_empty_filterbank(int nf, FP_TYPE fnyq, int nchannel) {
-  filterbank* ret = malloc(sizeof(filterbank));
+  filterbank* ret = (filterbank*)malloc(sizeof(filterbank));
   ret -> nchannel = nchannel;
   ret -> nf = nf;
   ret -> fnyq = fnyq;
-  ret -> fresp = calloc(nchannel, sizeof(FP_TYPE*));
-  ret -> lower_idx = calloc(nchannel, sizeof(int));
-  ret -> upper_idx = calloc(nchannel, sizeof(int));
+  ret -> fresp = (FP_TYPE**)calloc(nchannel, sizeof(FP_TYPE*));
+  ret -> lower_idx = (int*)calloc(nchannel, sizeof(int));
+  ret -> upper_idx = (int*)calloc(nchannel, sizeof(int));
   for(int i = 0; i < nchannel; i ++) {
-    ret -> fresp[i] = calloc(nf, sizeof(FP_TYPE));
+    ret -> fresp[i] = (FP_TYPE*)calloc(nf, sizeof(FP_TYPE));
     ret -> upper_idx[i] = nf;
   }
   return ret;
@@ -1354,7 +1354,7 @@ FP_TYPE** cig_filterbank_spectrogram(filterbank* fbank, FP_TYPE** S, int nfrm,
 
 FP_TYPE* cig_filterbank_spectrum(filterbank* fbank, FP_TYPE* S, int nfft, int fs,
   int crtenergy) {
-  FP_TYPE* X = calloc(fbank -> nchannel, sizeof(FP_TYPE));
+  FP_TYPE* X = (FP_TYPE*)calloc(fbank -> nchannel, sizeof(FP_TYPE));
   for(int j = 0; j < fbank -> nchannel; j ++) {
     for(int k = fbank -> lower_idx[j]; k < fbank -> upper_idx[j]; k ++)
       X[j] += fbank -> fresp[j][k] * S[k];
@@ -1366,7 +1366,7 @@ FP_TYPE* cig_filterbank_spectrum(filterbank* fbank, FP_TYPE* S, int nfft, int fs
 // Morise, Masanori. "Cheaptrick, a spectral envelope estimator for high-quality
 //   speech synthesis." Speech Communication 67 (2015): 1-7.
 FP_TYPE* cig_spec2env(FP_TYPE* S, int nfft, FP_TYPE f0, int nhar, FP_TYPE* Cout) {
-  FP_TYPE* buff = malloc(nfft * 4 * sizeof(FP_TYPE));
+  FP_TYPE* buff = (FP_TYPE*)malloc(nfft * 4 * sizeof(FP_TYPE));
   FP_TYPE* V = buff;
   FP_TYPE* C = buff + nfft;
   FP_TYPE* fftbuff = buff + nfft * 2;
@@ -1393,7 +1393,7 @@ FP_TYPE* cig_spec2env(FP_TYPE* S, int nfft, FP_TYPE f0, int nhar, FP_TYPE* Cout)
   if(Cout != NULL)
     for(int i = 0; i < nfft / 2 + 1; i ++)
       Cout[i] = C[i];
-  return realloc(V, nfft * sizeof(FP_TYPE));
+  return (FP_TYPE*)realloc(V, nfft * sizeof(FP_TYPE));
 }
 
 // Huber, Stefan, and Axel Roebel. "On the use of voice descriptors for glottal
@@ -1511,7 +1511,7 @@ FP_TYPE* cig_lfmodel_spectrum(lfmodel model, FP_TYPE* freq, int nf, FP_TYPE* dst
   FP_TYPE T0 = tmpparam.T0;
   FP_TYPE e1eTa = e * (1.0 - e * Ta);
   
-  FP_TYPE* dst_magn = calloc(nf, sizeof(FP_TYPE));
+  FP_TYPE* dst_magn = (FP_TYPE*)calloc(nf, sizeof(FP_TYPE));
   for(int i = 0; i < nf; i ++) {
     FP_TYPE Omega = 2.0 * M_PI * freq[i] / tmpparam.scale;
     cplx asubipif = c_cplx(a, - Omega);
@@ -1557,7 +1557,7 @@ FP_TYPE* cig_lfmodel_period(lfmodel model, int fs, int n) {
   int i;
   int ne = round(Te * fs / tmpparam.scale);
   int nT = round(T0 * fs / tmpparam.scale);
-  FP_TYPE* y = calloc(n, sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)calloc(n, sizeof(FP_TYPE));
   for(i = 0; i < min(ne + 1, n); i ++) {
     FP_TYPE t = (FP_TYPE)i / fs * tmpparam.scale;
     y[i] = E0 * exp_2(a * t) * sin_2(wg * t);

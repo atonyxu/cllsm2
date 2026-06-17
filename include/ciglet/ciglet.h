@@ -309,7 +309,7 @@ static inline cplx polyval(cplx* poly, int np, cplx x) {
 
 // real coefficient version of polyval
 static inline cplx polyvalr(FP_TYPE* poly, int np, cplx x) {
-  cplx* cpoly = malloc(np * sizeof(cplx));
+  cplx* cpoly = (cplx*)malloc(np * sizeof(cplx));
   for(int i = 0; i < np; i ++) cpoly[i] = c_cplx(poly[i], 0);
   cplx ret = cig_polyval(cpoly, np, x);
   free(cpoly);
@@ -326,7 +326,7 @@ static inline cplx* roots(cplx* poly, int np) {
 
 // real coefficient version of roots
 static inline cplx* rootsr(FP_TYPE* poly, int np) {
-  cplx* cpoly = malloc(np * sizeof(cplx));
+  cplx* cpoly = (cplx*)malloc(np * sizeof(cplx));
   for(int i = 0; i < np; i ++) cpoly[i] = c_cplx(poly[i], 0);
   cplx* ret = cig_roots(cpoly, np);
   free(cpoly);
@@ -336,14 +336,14 @@ static inline cplx* rootsr(FP_TYPE* poly, int np) {
 // === Memory (de)allocation ===
 
 static inline FP_TYPE* linspace(FP_TYPE x0, FP_TYPE x1, int nx) {
-  FP_TYPE* x = malloc(nx * sizeof(FP_TYPE));
+  FP_TYPE* x = (FP_TYPE*)malloc(nx * sizeof(FP_TYPE));
   for(int i = 0; i < nx; i ++)
     x[i] = x0 + (x1 - x0) * i / (nx - 1);
   return x;
 }
 
 static inline int* iota(int x0, int step, int nx) {
-  int* x = malloc(nx * sizeof(int));
+  int* x = (int*)malloc(nx * sizeof(int));
   for(int i = 0; i < nx; i ++)
     x[i] = x0 + step * i;
   return x;
@@ -351,7 +351,7 @@ static inline int* iota(int x0, int step, int nx) {
 
 #define malloc2d(m, n, size) (void*)malloc2d_(m, n, size)
 static inline void** malloc2d_(size_t m, size_t n, size_t size) {
-  void** ret = calloc(m, sizeof(void*));
+  void** ret = (void**)calloc(m, sizeof(void*));
   for(size_t i = 0; i < m; i++)
     ret[i] = calloc(n, size);
   return ret;
@@ -374,7 +374,7 @@ static inline void free2d_(void** ptr, size_t m) {
 
 #define flatten(ptr, m, n, size) (void*)flatten_((void**)(ptr), m, n, size)
 static inline void* flatten_(void** ptr, size_t m, size_t n, size_t size) {
-  void* ret = malloc(size * m * n);
+  void* ret = (void*)malloc(size * m * n);
   for(size_t i = 0; i < m; i ++)
     memcpy((char*)ret + i * n * size, ptr[i], n * size);
   return ret;
@@ -382,7 +382,7 @@ static inline void* flatten_(void** ptr, size_t m, size_t n, size_t size) {
 
 #define reshape(ptr, m, n, size) (void*)reshape_((void**)(ptr), m, n, size)
 static inline void** reshape_(void* ptr, size_t m, size_t n, size_t size) {
-  void** ret = malloc(m * sizeof(void*));
+  void** ret = (void**)malloc(m * sizeof(void*));
   for(size_t i = 0; i < m; i ++) {
     ret[i] = malloc(n * size);
     memcpy(ret[i], (char*)ptr + i * n * size, n * size);
@@ -404,7 +404,7 @@ void** cig_transpose(void** ptr, size_t m, size_t n, size_t size);
 */
 
 static inline FP_TYPE* zeros(int m, int n) {
-  return calloc(m * n, sizeof(FP_TYPE));
+  return (FP_TYPE*)calloc(m * n, sizeof(FP_TYPE));
 }
 
 static inline FP_TYPE* eye(int n) {
@@ -482,7 +482,7 @@ void wavwrite_fp(FP_TYPE* y, int ny, int fs, int nbit, FILE* fout);
 // === General DSP routines ===
 
 static inline FP_TYPE* fetch_frame(FP_TYPE* x, int nx, int center, int nf) {
-  FP_TYPE* y = malloc(nf * sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)malloc(nf * sizeof(FP_TYPE));
   for(int i = 0; i < nf; i ++) {
     int isrc = center + i - nf / 2;
     y[i] = (isrc >= 0 && isrc < nx) ? x[isrc] : 0;
@@ -494,7 +494,7 @@ static inline FP_TYPE* fetch_frame(FP_TYPE* x, int nx, int center, int nf) {
 static inline FP_TYPE* gensin(FP_TYPE freq, FP_TYPE ampl, FP_TYPE phse, int n, int fs) {
   FP_TYPE tpffs = 2.0 * M_PI / fs * freq;
   FP_TYPE c = 2.0 * cos_3(tpffs);
-  FP_TYPE* s = calloc(n, sizeof(FP_TYPE));
+  FP_TYPE* s = (FP_TYPE*)calloc(n, sizeof(FP_TYPE));
   s[0] = cos_3(tpffs * (- n / 2) + phse);
   s[1] = cos_3(tpffs * (- n / 2 + 1) + phse);
   for(int t = 2; t < n; t ++) {
@@ -512,7 +512,7 @@ static inline FP_TYPE* gensins(FP_TYPE* freq, FP_TYPE* ampl, FP_TYPE* phse,
 }
 
 static inline FP_TYPE* boxcar(int n) {
-  FP_TYPE* ret = malloc(n * sizeof(FP_TYPE));
+  FP_TYPE* ret = (FP_TYPE*)malloc(n * sizeof(FP_TYPE));
   for(int i = 0; i < n; i ++)
     ret[i] = 1.0;
   return ret;
@@ -520,7 +520,7 @@ static inline FP_TYPE* boxcar(int n) {
 
 #define CIG_DEF_HANNING(fname, cosfunc) \
 static inline FP_TYPE* fname(int n) { \
-  FP_TYPE* ret = malloc(n * sizeof(FP_TYPE)); \
+  FP_TYPE* ret = (FP_TYPE*)malloc(n * sizeof(FP_TYPE)); \
   for(int i = 0; i < n; i ++) \
     ret[i] = 0.5 * (1 - cosfunc(2 * M_PI * i / (n - 1))); \
   return ret; \
@@ -531,7 +531,7 @@ CIG_DEF_HANNING(hanning_2, cos_2);
 
 #define CIG_DEF_HAMMING(fname, cosfunc) \
 static inline FP_TYPE* fname(int n) { \
-  FP_TYPE* ret = malloc(n * sizeof(FP_TYPE)); \
+  FP_TYPE* ret = (FP_TYPE*)malloc(n * sizeof(FP_TYPE)); \
   for(int i = 0; i < n; i ++) \
     ret[i] = 0.54 - 0.46 * cosfunc(2 * M_PI * i / (n - 1)); \
   return ret; \
@@ -542,7 +542,7 @@ CIG_DEF_HAMMING(hamming_2, cos_2);
 
 #define CIG_DEF_MLTSINE(fname, sinfunc) \
 static inline FP_TYPE* fname(int n) { \
-  FP_TYPE* ret = malloc(n * sizeof(FP_TYPE)); \
+  FP_TYPE* ret = (FP_TYPE*)malloc(n * sizeof(FP_TYPE)); \
   for(int i = 0; i < n; i ++) \
     ret[i] = sinfunc(M_PI / n * (i + 0.5)); \
   return ret; \
@@ -554,7 +554,7 @@ CIG_DEF_MLTSINE(mltsine_2, sin_2);
 // 92dB side lobe
 #define CIG_DEF_BLACKMAN_HARRIS(fname, cosfunc) \
 static inline FP_TYPE* fname(int n) { \
-  FP_TYPE* ret = malloc(n * sizeof(FP_TYPE)); \
+  FP_TYPE* ret = (FP_TYPE*)malloc(n * sizeof(FP_TYPE)); \
   const FP_TYPE a0 = 0.35875; \
   const FP_TYPE a1 = 0.48829; \
   const FP_TYPE a2 = 0.14128; \
@@ -572,7 +572,7 @@ CIG_DEF_BLACKMAN_HARRIS(blackman_harris_2, cos_2);
 // 98dB side lobe, Prof. Kawahara's favorite
 #define CIG_DEF_NUTTALL98(fname, cosfunc) \
 static inline FP_TYPE* fname(int n) { \
-  FP_TYPE* ret = malloc(n * sizeof(FP_TYPE)); \
+  FP_TYPE* ret = (FP_TYPE*)malloc(n * sizeof(FP_TYPE)); \
   const FP_TYPE a0 = 0.3635819; \
   const FP_TYPE a1 = 0.4891775; \
   const FP_TYPE a2 = 0.1365995; \
@@ -589,7 +589,7 @@ CIG_DEF_NUTTALL98(nuttall98_2, cos_2);
 
 #define CIG_DEF_BLACKMAN(fname, cosfunc) \
 static inline FP_TYPE* fname(int n) { \
-  FP_TYPE* ret = malloc(n * sizeof(FP_TYPE)); \
+  FP_TYPE* ret = (FP_TYPE*)malloc(n * sizeof(FP_TYPE)); \
   const FP_TYPE a0 = 0.42; \
   const FP_TYPE a1 = 0.5; \
   const FP_TYPE a2 = 0.08; \
@@ -646,7 +646,7 @@ static inline FP_TYPE* dct(FP_TYPE* x, int nx) {
 }
 
 static inline FP_TYPE* fftshift(FP_TYPE* x, int n) {
-  FP_TYPE* y = malloc(n * sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)malloc(n * sizeof(FP_TYPE));
   int halfs = n / 2;
   int halfl = (n + 1) / 2;
   for(int i = 0; i < halfs; i ++)
@@ -657,7 +657,7 @@ static inline FP_TYPE* fftshift(FP_TYPE* x, int n) {
 }
 
 static inline FP_TYPE* unwrap(FP_TYPE* x, int n) {
-  FP_TYPE* y = malloc(n * sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)malloc(n * sizeof(FP_TYPE));
   y[0] = x[0];
   for(int i = 1; i < n; i ++) {
     if(fabs(x[i] - x[i - 1]) > M_PI)
@@ -673,7 +673,7 @@ static inline FP_TYPE wrap(FP_TYPE x) {
 }
 
 static inline FP_TYPE* diff(FP_TYPE* x, int nx) {
-  FP_TYPE* y = malloc(nx * sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)malloc(nx * sizeof(FP_TYPE));
   y[0] = x[0];
   for(int i = 1; i < nx; i ++)
     y[i] = x[i] - x[i - 1];
@@ -681,7 +681,7 @@ static inline FP_TYPE* diff(FP_TYPE* x, int nx) {
 }
 
 static inline FP_TYPE* cumsum(FP_TYPE* x, int nx) {
-  FP_TYPE* y = malloc(nx * sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)malloc(nx * sizeof(FP_TYPE));
   y[0] = x[0];
   for(int i = 1; i < nx; i ++)
     y[i] = y[i - 1] + x[i];
@@ -689,35 +689,35 @@ static inline FP_TYPE* cumsum(FP_TYPE* x, int nx) {
 }
 
 static inline FP_TYPE* flip(FP_TYPE* x, int nx) {
-  FP_TYPE* y = malloc(nx * sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)malloc(nx * sizeof(FP_TYPE));
   for(int i = 0; i < nx; i ++)
     y[i] = x[nx - i - 1];
   return y;
 }
 
 static inline FP_TYPE* abscplx(FP_TYPE* xr, FP_TYPE* xi, int n) {
-  FP_TYPE* y = malloc(n * sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)malloc(n * sizeof(FP_TYPE));
   for(int i = 0; i < n; i ++)
     y[i] = sqrt(xr[i] * xr[i] + xi[i] * xi[i]);
   return y;
 }
 
 static inline FP_TYPE* argcplx(FP_TYPE* xr, FP_TYPE* xi, int n) {
-  FP_TYPE* y = malloc(n * sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)malloc(n * sizeof(FP_TYPE));
   for(int i = 0; i < n; i ++)
     y[i] = atan2_3(xi[i], xr[i]);
   return y;
 }
 
 static inline FP_TYPE* polar2real(FP_TYPE* xabs, FP_TYPE* xarg, int n) {
-  FP_TYPE* y = malloc(n * sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)malloc(n * sizeof(FP_TYPE));
   for(int i = 0; i < n; i ++)
     y[i] = xabs[i] * cos_2(xarg[i]);
   return y;
 }
 
 static inline FP_TYPE* polar2imag(FP_TYPE* xabs, FP_TYPE* xarg, int n) {
-  FP_TYPE* y = malloc(n * sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)malloc(n * sizeof(FP_TYPE));
   for(int i = 0; i < n; i ++)
     y[i] = xabs[i] * sin_2(xarg[i]);
   return y;
@@ -743,7 +743,7 @@ static inline void complete_asymm(FP_TYPE* x, int n) {
 }
 
 static inline FP_TYPE* rceps(FP_TYPE* S, int nfft) {
-  FP_TYPE* buff = malloc(nfft * 4 * sizeof(FP_TYPE));
+  FP_TYPE* buff = (FP_TYPE*)malloc(nfft * 4 * sizeof(FP_TYPE));
   FP_TYPE* C = buff;
   FP_TYPE* S_symm = buff + nfft;
   FP_TYPE* fftbuff = buff + nfft * 2;
@@ -751,11 +751,11 @@ static inline FP_TYPE* rceps(FP_TYPE* S, int nfft) {
     S_symm[i] = S[i];
   complete_symm(S_symm, nfft);
   ifft(S_symm, NULL, C, NULL, nfft, fftbuff);
-  return realloc(C, nfft * sizeof(FP_TYPE));
+  return (FP_TYPE*)realloc(C, nfft * sizeof(FP_TYPE));
 }
 
 static inline FP_TYPE* irceps(FP_TYPE* C, int n, int nfft) {
-  FP_TYPE* buff = malloc(nfft * 4 * sizeof(FP_TYPE));
+  FP_TYPE* buff = (FP_TYPE*)malloc(nfft * 4 * sizeof(FP_TYPE));
   FP_TYPE* S = buff;
   FP_TYPE* C_symm = buff + nfft;
   FP_TYPE* fftbuff = buff + nfft * 2;
@@ -765,11 +765,11 @@ static inline FP_TYPE* irceps(FP_TYPE* C, int n, int nfft) {
     C_symm[i] = 0;
   complete_symm(C_symm, nfft);
   fft(C_symm, NULL, S, NULL, nfft, fftbuff);
-  return realloc(S, nfft * sizeof(FP_TYPE));
+  return (FP_TYPE*)realloc(S, nfft * sizeof(FP_TYPE));
 }
 
 static inline FP_TYPE* minphase(FP_TYPE* S, int nfft) {
-  FP_TYPE* buff = malloc(nfft * 4 * sizeof(FP_TYPE));
+  FP_TYPE* buff = (FP_TYPE*)malloc(nfft * 4 * sizeof(FP_TYPE));
   FP_TYPE* S_symm = buff;
   FP_TYPE* C = buff + nfft;
   FP_TYPE* fftbuff = buff + nfft * 2;
@@ -782,7 +782,7 @@ static inline FP_TYPE* minphase(FP_TYPE* S, int nfft) {
   for(int i = nfft / 2 + 2; i < nfft; i ++)
     C[i] = 0.0;
   fft(C, NULL, NULL, S_symm, nfft, fftbuff);
-  return realloc(S_symm, nfft * sizeof(FP_TYPE));
+  return (FP_TYPE*)realloc(S_symm, nfft * sizeof(FP_TYPE));
 }
 
 FP_TYPE* cig_winfir(int order, FP_TYPE cutoff, FP_TYPE cutoff2,
@@ -813,7 +813,7 @@ static inline FP_TYPE* filter(FP_TYPE* b, int nb, FP_TYPE* a, int na,
 static inline FP_TYPE* filtfilt(FP_TYPE* b, int nb, FP_TYPE* a, int na,
   FP_TYPE* x, int nx) {
   FP_TYPE* y = cig_filter(b, nb, a, na, x, nx);
-  FP_TYPE* z = malloc(nx * sizeof(FP_TYPE));
+  FP_TYPE* z = (FP_TYPE*)malloc(nx * sizeof(FP_TYPE));
   for(int i = 0; i < nx; i ++) z[i] = y[nx - i - 1]; // flip the signal
   FP_TYPE* y2 = cig_filter(b, nb, a, na, z, nx); // fliter again
   for(int i = 0; i < nx; i ++) y[i] = y2[nx - i - 1]; // flip back the signal
@@ -876,7 +876,7 @@ static inline FP_TYPE* lpc(FP_TYPE* x, int nx, int p, FP_TYPE** R_out) {
 // LPC from magnitude spectrum
 static inline FP_TYPE* flpc(FP_TYPE* S, int ns, int p, FP_TYPE** R_out) {
   int nfft = pow(2, ceil(log2(ns - 1) + 1));
-  FP_TYPE* tmp = calloc(nfft * 4, sizeof(FP_TYPE));
+  FP_TYPE* tmp = (FP_TYPE*)calloc(nfft * 4, sizeof(FP_TYPE));
   FP_TYPE* R = tmp;
   FP_TYPE* Xsqr = tmp + nfft;
   FP_TYPE* fftbuff = tmp + nfft * 2;
@@ -886,7 +886,7 @@ static inline FP_TYPE* flpc(FP_TYPE* S, int ns, int p, FP_TYPE** R_out) {
   ifft(Xsqr, NULL, R, NULL, nfft, fftbuff);
   FP_TYPE* a = cig_levinson(R, p + 1);
   if(R_out != NULL)
-    *R_out = realloc(tmp, (p + 1) * sizeof(FP_TYPE));
+    *R_out = (FP_TYPE*)realloc(tmp, (p + 1) * sizeof(FP_TYPE));
   else
     free(tmp);
   return a;
@@ -900,7 +900,7 @@ static inline FP_TYPE lpgain(FP_TYPE* a, FP_TYPE* R, int n) {
 }
 
 static inline FP_TYPE* lpspec(FP_TYPE* a, FP_TYPE gain, int n, int nfft) {
-  FP_TYPE* buff = malloc(nfft * 5 * sizeof(FP_TYPE));
+  FP_TYPE* buff = (FP_TYPE*)malloc(nfft * 5 * sizeof(FP_TYPE));
   FP_TYPE* Sr = buff;
   FP_TYPE* Si = buff + nfft;
   FP_TYPE* A = buff + nfft * 2;
@@ -912,7 +912,7 @@ static inline FP_TYPE* lpspec(FP_TYPE* a, FP_TYPE gain, int n, int nfft) {
   fft(A, NULL, Sr, Si, nfft, fftbuff);
   for(int i = 0; i < nfft; i ++)
     Sr[i] = gain / sqrt(Sr[i] * Sr[i] + Si[i] * Si[i]);
-  Sr = realloc(Sr, nfft * sizeof(FP_TYPE));
+  Sr = (FP_TYPE*)realloc(Sr, nfft * sizeof(FP_TYPE));
   return Sr;
 }
 
@@ -921,7 +921,7 @@ static inline FP_TYPE* lpspec(FP_TYPE* a, FP_TYPE gain, int n, int nfft) {
 //   pole locations are written into poles if not NULL.
 static inline FP_TYPE* lpresf(FP_TYPE* a, int n, cplx* poles, int* np) {
   cplx* r = rootsr(a, n);
-  FP_TYPE* freqs = malloc((n - 1) * sizeof(FP_TYPE));
+  FP_TYPE* freqs = (FP_TYPE*)malloc((n - 1) * sizeof(FP_TYPE));
   *np = 0;
   for(int i = 0; i < n - 1; i ++) {
     FP_TYPE f = atan2_2(r[i].imag, r[i].real) / M_PI;
@@ -931,7 +931,7 @@ static inline FP_TYPE* lpresf(FP_TYPE* a, int n, cplx* poles, int* np) {
       (*np) ++;
     }
   }
-  int* freqidx = malloc((*np) * sizeof(int));
+  int* freqidx = (int*)malloc((*np) * sizeof(int));
   FP_TYPE* freqsort = cig_sort(freqs, *np, freqidx);
   free(freqs);
 
@@ -965,8 +965,8 @@ static inline FP_TYPE* sincinterp1u(FP_TYPE xi0, FP_TYPE xi1, FP_TYPE* yi, int n
 
 // replace discontinuties in a series with interpolated values
 static inline FP_TYPE* interp_in_blank(FP_TYPE* x, int nx, FP_TYPE blank) {
-  FP_TYPE* x_sample = calloc(nx + 2, sizeof(FP_TYPE));
-  FP_TYPE* i_sample = calloc(nx + 2, sizeof(FP_TYPE));
+  FP_TYPE* x_sample = (FP_TYPE*)calloc(nx + 2, sizeof(FP_TYPE));
+  FP_TYPE* i_sample = (FP_TYPE*)calloc(nx + 2, sizeof(FP_TYPE));
   int n = 1;
   for(int i = 0; i < nx; i ++)
     if(x[i] != blank || (isnan(blank) && (! isnan(x[i])))) {
@@ -993,7 +993,7 @@ static inline FP_TYPE* medfilt1(FP_TYPE* x, int nx, int order) {
 }
 
 static inline FP_TYPE* white_noise(FP_TYPE amplitude, int n) {
-  FP_TYPE* y = malloc(n * sizeof(FP_TYPE));
+  FP_TYPE* y = (FP_TYPE*)malloc(n * sizeof(FP_TYPE));
   for(int i = 0; i < n; i ++)
     y[i] = ((FP_TYPE)rand() / RAND_MAX - 0.5) * amplitude * 2.0;
   return y;
@@ -1005,7 +1005,7 @@ static inline FP_TYPE* moving_avg(FP_TYPE* x, int nx, FP_TYPE halford) {
 }
 
 static inline FP_TYPE* moving_rms(FP_TYPE* x, int nx, int order) {
-  FP_TYPE* xsqr = malloc(nx * sizeof(FP_TYPE));
+  FP_TYPE* xsqr = (FP_TYPE*)malloc(nx * sizeof(FP_TYPE));
   for(int i = 0; i < nx; i ++)
     xsqr[i] = x[i] * x[i];
   FP_TYPE* y = moving_avg(xsqr, nx, order);
@@ -1016,7 +1016,7 @@ static inline FP_TYPE* moving_rms(FP_TYPE* x, int nx, int order) {
 }
 
 static inline FP_TYPE itakura_saito(FP_TYPE* S, FP_TYPE* S0, int nS) {
-  FP_TYPE* d = malloc(nS * sizeof(FP_TYPE));
+  FP_TYPE* d = (FP_TYPE*)malloc(nS * sizeof(FP_TYPE));
   for(int i = 0; i < nS; i ++)
     d[i] = S[i] / S0[i] - log_2(S[i] / S0[i]) - 1.0;
   FP_TYPE ret = log_2(sumfp(d, nS) / nS);
@@ -1114,7 +1114,7 @@ static inline FP_TYPE eqloud(FP_TYPE f) {
 }
 
 static inline FP_TYPE* melspace(FP_TYPE fmin, FP_TYPE fmax, int n) {
-  FP_TYPE* freq = malloc((n + 1) * sizeof(FP_TYPE));
+  FP_TYPE* freq = (FP_TYPE*)malloc((n + 1) * sizeof(FP_TYPE));
   FP_TYPE mmin = freq2mel(fmin);
   FP_TYPE mmax = freq2mel(fmax);
   for(int i = 0; i <= n; i ++)
@@ -1144,8 +1144,8 @@ FP_TYPE* cig_stft_backward(FP_TYPE** Xmagn, FP_TYPE** Xphse, int nhop, int nfrm,
 #define CIG_DEF_STFT(fname, optlv) \
 static inline void fname(FP_TYPE* x, int nx, int nhop, int nfrm, int hopfc, int zpfc, \
   FP_TYPE* normfc, FP_TYPE* weightfc, FP_TYPE** Xmagn, FP_TYPE** Xphse) { \
-  int* center = malloc(nfrm * sizeof(int)); \
-  int* nwin = malloc(nfrm * sizeof(int)); \
+  int* center = (int*)malloc(nfrm * sizeof(int)); \
+  int* nwin = (int*)malloc(nfrm * sizeof(int)); \
   for(int i = 0; i < nfrm; i ++) { \
     center[i] = nhop * i; \
     nwin[i] = nhop * hopfc; \
@@ -1172,9 +1172,9 @@ static inline FP_TYPE qifft(FP_TYPE* magn, int k, FP_TYPE* dst_freq) {
 
 static inline FP_TYPE** spgm2cegm(FP_TYPE** S, int nfrm, int nfft, int ncep) {
   FP_TYPE** C = (FP_TYPE**)malloc2d(nfrm, ncep, sizeof(FP_TYPE));
-  FP_TYPE* xbuff = calloc(nfft, sizeof(FP_TYPE));
-  FP_TYPE* cbuff = calloc(nfft, sizeof(FP_TYPE));
-  FP_TYPE* fftbuff = calloc(nfft * 2, sizeof(FP_TYPE));
+  FP_TYPE* xbuff = (FP_TYPE*)calloc(nfft, sizeof(FP_TYPE));
+  FP_TYPE* cbuff = (FP_TYPE*)calloc(nfft, sizeof(FP_TYPE));
+  FP_TYPE* fftbuff = (FP_TYPE*)calloc(nfft * 2, sizeof(FP_TYPE));
   
   for(int i = 0; i < nfrm; i ++) {
     for(int j = 0; j < nfft / 2 + 1; j ++)
@@ -1194,9 +1194,9 @@ static inline FP_TYPE** spgm2cegm(FP_TYPE** S, int nfrm, int nfft, int ncep) {
 
 static inline FP_TYPE** cegm2spgm(FP_TYPE** C, int nfrm, int nfft, int ncep) {
   FP_TYPE** S = (FP_TYPE**)malloc2d(nfrm, nfft / 2 + 1, sizeof(FP_TYPE));
-  FP_TYPE* xbuff = calloc(nfft, sizeof(FP_TYPE));
-  FP_TYPE* cbuff = calloc(nfft, sizeof(FP_TYPE));
-  FP_TYPE* fftbuff = calloc(nfft * 2, sizeof(FP_TYPE));
+  FP_TYPE* xbuff = (FP_TYPE*)calloc(nfft, sizeof(FP_TYPE));
+  FP_TYPE* cbuff = (FP_TYPE*)calloc(nfft, sizeof(FP_TYPE));
+  FP_TYPE* fftbuff = (FP_TYPE*)calloc(nfft * 2, sizeof(FP_TYPE));
   
   for(int i = 0; i < nfrm; i ++) {
     for(int j = 0; j < ncep; j ++)
@@ -1267,7 +1267,7 @@ static inline FP_TYPE* be2cc(FP_TYPE* band_energy, int nbe, int ncc, int with_en
 }
 
 static inline FP_TYPE** be2ccgm(FP_TYPE** E, int nfrm, int nbe, int ncc, int with_energy) {
-  FP_TYPE** C = malloc(nfrm * sizeof(FP_TYPE*));
+  FP_TYPE** C = (FP_TYPE**)malloc(nfrm * sizeof(FP_TYPE*));
   for(int i = 0; i < nfrm; i ++)
     C[i] = be2cc(E[i], nbe, ncc, with_energy);
   return C;
@@ -1319,7 +1319,7 @@ typedef struct {
 } figure;
 
 static inline figure* plotopenv(const char* name) {
-  figure* fg = malloc(sizeof(figure));
+  figure* fg = (figure*)malloc(sizeof(figure));
   int childio[2];
   pipe(childio);
   

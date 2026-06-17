@@ -43,7 +43,7 @@ typedef struct {
 
 llsm_coder* llsm_create_coder(llsm_container* conf, int order_spec,
   int order_bap) {
-  llsm_coder_* ret = malloc(sizeof(llsm_coder_));
+  llsm_coder_* ret = (llsm_coder_*)malloc(sizeof(llsm_coder_));
   FP_TYPE* fnyq = llsm_container_get(conf, LLSM_CONF_FNYQ);
   int* nchannel = llsm_container_get(conf, LLSM_CONF_NCHANNEL);
   int* nhar_e = llsm_container_get(conf, LLSM_CONF_MAXNHAR_E);
@@ -58,13 +58,13 @@ llsm_coder* llsm_create_coder(llsm_container* conf, int order_spec,
   ret -> npsd = npsd[0];
   ret -> fnyq = fnyq[0];
   ret -> liprad = liprad[0];
-  ret -> faxis = calloc(ret -> nfullspec, sizeof(FP_TYPE));
+  ret -> faxis = (FP_TYPE*)calloc(ret -> nfullspec, sizeof(FP_TYPE));
   for(int i = 0; i < ret -> nfullspec; i ++)
     ret -> faxis[i] = fnyq[0] * 2 * i / ret -> nfullspec;
   ret -> psdaxis = linspace(0, ret -> fnyq, ret -> npsd);
   FP_TYPE mel_ceil = freq2mel(ret -> fnyq);
   FP_TYPE mel_floor = freq2mel(50);
-  ret -> melaxis = calloc(nspec[0], sizeof(FP_TYPE));
+  ret -> melaxis = (FP_TYPE*)calloc(nspec[0], sizeof(FP_TYPE));
   for(int i = 0; i < nspec[0]; i ++)
     ret -> melaxis[i] = mel2freq(
       mel_floor + (mel_ceil - mel_floor) * i / nspec[0]);
@@ -85,7 +85,7 @@ void llsm_delete_coder(llsm_coder* dst_) {
 FP_TYPE* llsm_coder_encode(llsm_coder* c_, llsm_container* src) {
   llsm_coder_* c = (llsm_coder_*)c_;
   int ns = c -> nfullspec / 2 + 1;
-  FP_TYPE* enc = calloc(c -> order_spec + c -> order_bap + 3, sizeof(FP_TYPE));
+  FP_TYPE* enc = (FP_TYPE*)calloc(c -> order_spec + c -> order_bap + 3, sizeof(FP_TYPE));
 
   FP_TYPE* f0 = llsm_container_get(src, LLSM_FRAME_F0);
   llsm_nmframe* nm = llsm_container_get(src, LLSM_FRAME_NM);
@@ -107,7 +107,7 @@ FP_TYPE* llsm_coder_encode(llsm_coder* c_, llsm_container* src) {
     lfmodel gfm = lfmodel_from_rd(rd[0], 1.0 / f0[0], 1.0);
     FP_TYPE* lfmagnresp = lfmodel_spectrum(gfm, c -> faxis, ns, NULL);
     FP_TYPE* lfmagnf0 = lfmodel_spectrum(gfm, f0, 1, NULL);
-    FP_TYPE* spec_env = calloc(ns, sizeof(FP_TYPE));
+    FP_TYPE* spec_env = (FP_TYPE*)calloc(ns, sizeof(FP_TYPE));
     for(int j = 1; j < ns; j ++) {
       spec_env[j] = exp_2(DB2LOG(vtmagn[j]))
         * lfmagnresp[j] / lfmagnf0[0] * f0[0] / c -> faxis[j];
@@ -180,8 +180,8 @@ static llsm_container* llsm_coder_decode(llsm_coder* c_, FP_TYPE* src,
 
   FP_TYPE* src_spec = src + 3;
   FP_TYPE* src_bap = src + 3 + c -> order_spec;
-  FP_TYPE* mel_psd = calloc(ns, sizeof(FP_TYPE));
-  FP_TYPE* bap_pad = calloc(c -> order_bap + 1, sizeof(FP_TYPE));
+  FP_TYPE* mel_psd = (FP_TYPE*)calloc(ns, sizeof(FP_TYPE));
+  FP_TYPE* bap_pad = (FP_TYPE*)calloc(c -> order_bap + 1, sizeof(FP_TYPE));
   // undo the IDCT
   for(int j = 0; j < c -> order_spec; j ++)
     mel_psd[j] = src_spec[j] * 0.5 * (ns - 1) * 2.0 / c -> order_spec;
@@ -258,7 +258,7 @@ static llsm_container* llsm_coder_decode(llsm_coder* c_, FP_TYPE* src,
       hm -> ampl[i] = ampl[i];
     llsm_lipfilter(c -> liprad, f0, nhar, ampl, NULL, 1);
     lfmodel gfm = lfmodel_from_rd(rd, 1.0 / f0, 1.0);
-    FP_TYPE* vsphse = calloc(nhar, sizeof(FP_TYPE));
+    FP_TYPE* vsphse = (FP_TYPE*)calloc(nhar, sizeof(FP_TYPE));
     // recover vocal tract magnitude response
     FP_TYPE* lfmagnresp = lfmodel_spectrum(gfm, harfreq + 1, nhar, vsphse);
     for(int i = 0; i < nhar; i ++) {
