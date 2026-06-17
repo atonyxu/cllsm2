@@ -76,31 +76,6 @@ static void cleanup_gpu(void) {
  *  avoiding ~40K+ cudaMemcpy round-trips per inference.               *
  * ================================================================== */
 
-/* ddct: direct CPU implementation (not performance-critical).
-   isgn = -1: DCT-II   C[k] = sum_j a[j] * cos(pi*(j+0.5)*k/n)
-   isgn =  1: DCT-III  C[j] = sum_k a[k] * cos(pi*k*(j+0.5)/n)
-*/
-static void ddct(int n, int isgn, FP_TYPE* a) {
-  FP_TYPE* tmp = (FP_TYPE*)malloc((size_t)n * sizeof(FP_TYPE));
-  if(isgn < 0) {
-    for(int k = 0; k < n; k++) {
-      FP_TYPE s = 0;
-      for(int j = 0; j < n; j++)
-        s += a[j] * cos((FP_TYPE)M_PI * (j + 0.5) * k / n);
-      tmp[k] = s;
-    }
-  } else {
-    for(int j = 0; j < n; j++) {
-      FP_TYPE s = 0;
-      for(int k = 0; k < n; k++)
-        s += a[k] * cos((FP_TYPE)M_PI * k * (j + 0.5) / n);
-      tmp[j] = s;
-    }
-  }
-  memcpy(a, tmp, (size_t)n * sizeof(FP_TYPE));
-  free(tmp);
-}
-
 /* ================================================================== *
  *  CUDA kernel: CZT for one frame                                     *
  * ================================================================== */
