@@ -40,8 +40,7 @@ jobs:
             cuda-nvcc=12.8 `
             cuda-cudart-dev=12.8 `
             cuda-cudart-static=12.8 `
-            cuda-libraries-dev=12.8 `
-            cuda-cufft-static=12.8 
+            cuda-libraries-dev=12.8 
         env:
           CONDA_SOLVER: libmamba
 
