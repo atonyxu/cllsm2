@@ -107,3 +107,55 @@ jobs:
         with:
           name: cllsm2_extract_cuda-win-x64
           path: build\cllsm2_extract_cuda.exe
+
+  # ====================================================================
+  # Linux x64 — 使用官方 CUDA Docker 环境编译
+  # ====================================================================
+  linux-cuda-x64:
+    runs-on: ubuntu-22.04
+    container:
+      image: nvidia/cuda:12.8.0-devel-ubuntu22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ========== 1. 安装编译依赖 ==========
+      - name: Install build dependencies
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends g++ make
+          # 验证编译器
+          g++ --version
+          nvcc --version
+
+      # ========== 2. 编译 CUDA 提取器（多架构）==========
+      - name: Build CUDA extract (Linux x64)
+        run: |
+          mkdir -p build
+          nvcc -O3 -DFP_TYPE=float \
+            -gencode arch=compute_75,code=sm_75 \
+            -gencode arch=compute_86,code=sm_86 \
+            -gencode arch=compute_89,code=sm_89 \
+            -gencode arch=compute_120,code=sm_120 \
+            -I include \
+            -o build/cllsm2_extract_cuda \
+            cllsm2_extract_cuda.cu \
+            -cudart static \
+            -lcufft -lcublas -lcublasLt
+
+      # ========== 3. 验证产物 ==========
+      - name: Show binary info
+        run: |
+          if [ -f build/cllsm2_extract_cuda ]; then
+            ls -lh build/cllsm2_extract_cuda
+            file build/cllsm2_extract_cuda
+          else
+            echo "ERROR: binary not found"
+            exit 1
+          fi
+
+      # ========== 4. 上传构建产物 ==========
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cllsm2_extract_cuda-linux-x64
+          path: build/cllsm2_extract_cuda
