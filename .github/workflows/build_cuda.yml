@@ -17,7 +17,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/conda_pkgs_dir
-          key: conda-win-cuda128-msvc2022-v2
+          key: conda-win-cuda128-msvc2022-v3
           restore-keys: |
             conda-win-cuda128-msvc2022-
 
@@ -36,18 +36,14 @@ jobs:
       - name: Install CUDA 12.8 & MSVC
         shell: pwsh
         run: |
-          # 1. 安装 CUDA 工具包
-          # 修正1: 移除了不存在的 libcufft-dev 包。在 Windows 上，cufft 库包含在 cuda-libraries-dev 中。
+          # 安装 CUDA 工具包 (Windows下cufft已包含在cuda-libraries-dev中)
           conda install -y -c nvidia/label/cuda-12.8.0 `
             cuda-nvcc=12.8 `
             cuda-cudart-dev=12.8 `
             cuda-libraries-dev=12.8
 
-          # 2. 安装 MSVC 编译器
-          # 修正2: vs2022_compiler_vars 包在 conda-forge 的 win-64 平台上不可用。
-          # 我们改用 vs2022_win-64，它包含了编译器本身和必要的环境变量。
-          conda install -y -c conda-forge `
-            vs2022_win-64
+          # 安装 MSVC 编译器
+          conda install -y -c conda-forge vs2022_win-64
         env:
           CONDA_SOLVER: libmamba
 
@@ -55,19 +51,52 @@ jobs:
       - name: Build CUDA extract (Windows x64)
         shell: pwsh
         run: |
-          # 激活 MSVC 环境变量
-          # 注意：vs2022_win-64 包会自动在激活环境时设置好编译器路径，
-          # 因此不再需要手动调用 vs2022_compiler_vars.bat 脚本。
-          # 我们可以直接使用 nvcc 和 cl。
+          # 1. 显式查找并激活 MSVC 环境变量
+          $activateScript = "$env:CONDA_PREFIX\etc\conda\activate.d\activate_vs2022.bat"
+          
+          if (-not (Test-Path $activateScript)) {
+            # 备用路径搜索
+            $activateScript = Get-ChildItem -Path "$env:CONDA_PREFIX\etc\conda\activate.d\" -Filter "*vs*.bat" -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+          }
 
-          # 验证编译器是否可用
+          if (Test-Path $activateScript) {
+            Write-Host "Activating MSVC via: $activateScript"
+            # 在 cmd 中执行 bat 脚本，捕获所有环境变量并注入到当前 PowerShell 进程
+            cmd /c "`"$activateScript`" && set" | ForEach-Object {
+              if ($_ -match "^(.+?)=(.*)$") {
+                [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
+              }
+            }
+          } else {
+            Write-Warning "MSVC activate script not found in Conda env. Falling back to system VS..."
+            # 回退方案：使用 windows-2022 runner 自带的系统级 VS2022
+            $vsWhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+            if (Test-Path $vsWhere) {
+              $vsPath = & $vsWhere -latest -property installationPath
+              cmd /c "`"$vsPath\Common7\Tools\VsDevCmd.bat`" -arch=amd64 && set" | ForEach-Object {
+                if ($_ -match "^(.+?)=(.*)$") {
+                  [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
+                }
+              }
+            } else {
+              Write-Error "No MSVC compiler found!"
+              exit 1
+            }
+          }
+
+          # 2. 验证编译器
           Write-Host "Checking compilers..."
           nvcc --version
-          cl
+          cl 2>&1 | Select-Object -First 1
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "cl.exe is still not available after activation!"
+            exit 1
+          }
 
+          # 3. 创建输出目录并编译
           New-Item -ItemType Directory -Force -Path build | Out-Null
 
-          # 多架构编译：覆盖 T4 / 30系 / 40系 / 50系
+          # 多架构编译：覆盖 T4(sm_75) / 30系(sm_86) / 40系(sm_89) / 50系(sm_120)
           nvcc -O3 -DFP_TYPE=float `
             -gencode arch=compute_75,code=sm_75 `
             -gencode arch=compute_86,code=sm_86 `
@@ -90,6 +119,7 @@ jobs:
             exit 1
           }
 
+      # ========== 6. 上传构建产物 ==========
       - uses: actions/upload-artifact@v4
         with:
           name: cllsm2_extract_cuda-win-x64
