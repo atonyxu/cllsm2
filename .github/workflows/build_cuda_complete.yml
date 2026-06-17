@@ -20,6 +20,7 @@ jobs:
       - name: Build CUDA extract (Windows x64)
         shell: cmd
         run: |
+          mkdir build
           nvcc -O3 -allow-unsupported-compiler -DFP_TYPE=float ^
             -gencode arch=compute_75,code=sm_75 ^
             -gencode arch=compute_86,code=sm_86 ^
