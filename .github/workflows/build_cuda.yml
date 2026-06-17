@@ -78,6 +78,7 @@ jobs:
 
           # 多架构编译：T4(sm_75) / 30系(sm_86) / 40系(sm_89) / 50系(sm_120)
           nvcc -O3 -DFP_TYPE=float `
+            --compiler-options=/TC `
             -gencode arch=compute_75,code=sm_75 `
             -gencode arch=compute_86,code=sm_86 `
             -gencode arch=compute_89,code=sm_89 `
