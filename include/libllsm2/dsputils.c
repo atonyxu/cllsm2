@@ -194,8 +194,8 @@ void llsm_harmonic_analysis(FP_TYPE* x, int nx, FP_TYPE fs, FP_TYPE* f0,
   }
 
   if(method == LLSM_AOPTION_HMPP) {
-    FP_TYPE** spec_magn = malloc2d(nvfrm, nspec, sizeof(FP_TYPE));
-    FP_TYPE** spec_phse = malloc2d(nvfrm, nspec, sizeof(FP_TYPE));
+    FP_TYPE** spec_magn = (FP_TYPE**)malloc2d(nvfrm, nspec, sizeof(FP_TYPE));
+    FP_TYPE** spec_phse = (FP_TYPE**)malloc2d(nvfrm, nspec, sizeof(FP_TYPE));
     llsm_compute_spectrogram(x, nx, center, winsize, nvfrm, nfft, "blackman",
       spec_magn, spec_phse);
     for(int i = 0; i < nvfrm; i ++) {

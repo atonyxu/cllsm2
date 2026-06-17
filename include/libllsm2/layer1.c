@@ -25,10 +25,10 @@
 #include "constants.h"
 
 static int llsm_layer0to1_check_integrity(llsm_chunk* src) {
-  int* nfrm = llsm_container_get(src -> conf, LLSM_CONF_NFRM);
-  FP_TYPE* thop = llsm_container_get(src -> conf, LLSM_CONF_THOP);
-  FP_TYPE* fnyq = llsm_container_get(src -> conf, LLSM_CONF_FNYQ);
-  FP_TYPE* liprad = llsm_container_get(src -> conf, LLSM_CONF_LIPRADIUS);
+  int* nfrm = (int*)llsm_container_get(src -> conf, LLSM_CONF_NFRM);
+  FP_TYPE* thop = (FP_TYPE*)llsm_container_get(src -> conf, LLSM_CONF_THOP);
+  FP_TYPE* fnyq = (FP_TYPE*)llsm_container_get(src -> conf, LLSM_CONF_FNYQ);
+  FP_TYPE* liprad = (FP_TYPE*)llsm_container_get(src -> conf, LLSM_CONF_LIPRADIUS);
   if(nfrm == NULL || thop == NULL || fnyq == NULL || liprad == NULL)
     return 0;
   for(int i = 0; i < *nfrm; i ++)
@@ -38,9 +38,9 @@ static int llsm_layer0to1_check_integrity(llsm_chunk* src) {
 }
 
 static int llsm_layer1to0_check_integrity(llsm_container* conf) {
-  FP_TYPE* fnyq = llsm_container_get(conf, LLSM_CONF_FNYQ);
-  FP_TYPE* liprad = llsm_container_get(conf, LLSM_CONF_LIPRADIUS);
-  int* nspec = llsm_container_get(conf, LLSM_CONF_NSPEC);
+  FP_TYPE* fnyq = (FP_TYPE*)llsm_container_get(conf, LLSM_CONF_FNYQ);
+  FP_TYPE* liprad = (FP_TYPE*)llsm_container_get(conf, LLSM_CONF_LIPRADIUS);
+  int* nspec = (int*)llsm_container_get(conf, LLSM_CONF_NSPEC);
   if(fnyq == NULL || liprad == NULL || nspec == NULL) return 0;
   return 1;
 }
@@ -61,7 +61,7 @@ static FP_TYPE* llsm_analyze_rd(llsm_chunk* src) {
     FP_TYPE f0 = *((FP_TYPE*)llsm_container_get(src -> frames[i],
       LLSM_FRAME_F0));
     if(f0 == 0) continue;
-    llsm_hmframe* hm = llsm_container_get(src -> frames[i], LLSM_FRAME_HM);
+    llsm_hmframe* hm = (llsm_hmframe*)llsm_container_get(src -> frames[i], LLSM_FRAME_HM);
     int nhar = min(hm -> nhar, round(8000.0 / f0));
     FP_TYPE* ampl = (FP_TYPE*)calloc(nhar, sizeof(FP_TYPE));
     memcpy(ampl, hm -> ampl, nhar * sizeof(FP_TYPE));
@@ -88,7 +88,7 @@ static void llsm_frame_tolayer1(llsm_container* dst, FP_TYPE lip_radius,
   int nspec = nfft / 2 + 1;
   FP_TYPE rd = *((FP_TYPE*)llsm_container_get(dst, LLSM_FRAME_RD));
   FP_TYPE f0 = *((FP_TYPE*)llsm_container_get(dst, LLSM_FRAME_F0));
-  llsm_hmframe* hm = llsm_container_get(dst, LLSM_FRAME_HM);
+  llsm_hmframe* hm = (llsm_hmframe*)llsm_container_get(dst, LLSM_FRAME_HM);
   FP_TYPE* ampl = (FP_TYPE*)calloc(hm -> nhar, sizeof(FP_TYPE));
   FP_TYPE* phse = (FP_TYPE*)calloc(hm -> nhar, sizeof(FP_TYPE));
   FP_TYPE* freq = (FP_TYPE*)calloc(hm -> nhar, sizeof(FP_TYPE));
@@ -155,14 +155,14 @@ void llsm_frame_tolayer0(llsm_container* dst, llsm_container* conf) {
   FP_TYPE lip_radius = *((FP_TYPE*)llsm_container_get(conf,
     LLSM_CONF_LIPRADIUS));
   int nspec = *((int*)llsm_container_get(conf, LLSM_CONF_NSPEC));
-  FP_TYPE* f0 = llsm_container_get(dst, LLSM_FRAME_F0);
-  FP_TYPE* rd = llsm_container_get(dst, LLSM_FRAME_RD);
-  FP_TYPE* spec_env = llsm_container_get(dst, LLSM_FRAME_VTMAGN);
-  FP_TYPE* vs_phse = llsm_container_get(dst, LLSM_FRAME_VSPHSE);
+  FP_TYPE* f0 = (FP_TYPE*)llsm_container_get(dst, LLSM_FRAME_F0);
+  FP_TYPE* rd = (FP_TYPE*)llsm_container_get(dst, LLSM_FRAME_RD);
+  FP_TYPE* spec_env = (FP_TYPE*)llsm_container_get(dst, LLSM_FRAME_VTMAGN);
+  FP_TYPE* vs_phse = (FP_TYPE*)llsm_container_get(dst, LLSM_FRAME_VSPHSE);
   if(*f0 == 0) return;
 
   int nhar = llsm_fparray_length(vs_phse);
-  int* maxnhar = llsm_container_get(conf, LLSM_CONF_MAXNHAR);
+  int* maxnhar = (int*)llsm_container_get(conf, LLSM_CONF_MAXNHAR);
   if(maxnhar != NULL) nhar = min(nhar, *maxnhar);
   nhar = min(nhar, (int)(fnyq / *f0));
 

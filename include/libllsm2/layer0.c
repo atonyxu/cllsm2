@@ -123,7 +123,7 @@ static FP_TYPE* llsm_synthesize_harmonics_l0(llsm_soptions* options,
   FP_TYPE* phase = (FP_TYPE*)calloc(maxnhar, sizeof(FP_TYPE));
   for(int i = 0; i < nfrm; i ++) {
     if(f0[i] == 0) continue; // skip unvoiced frames
-    llsm_hmframe* hm = llsm_container_get(chunk -> frames[i], LLSM_FRAME_HM);
+    llsm_hmframe* hm = (llsm_hmframe*)llsm_container_get(chunk -> frames[i], LLSM_FRAME_HM);
     FP_TYPE rawidx = i * thop * fs;
     int baseidx = round(rawidx);
     FP_TYPE phase_correction = (rawidx - baseidx) * 2 * M_PI / fs * f0[i];
@@ -158,8 +158,8 @@ static FP_TYPE* llsm_synthesize_harmonics(llsm_soptions* options,
   FP_TYPE* y_mix = (FP_TYPE*)calloc(ny, sizeof(FP_TYPE));
   int nwin = round(thop * fs) * 2;
   FP_TYPE* w = hanning(nwin);
-  FP_TYPE* fnyq = llsm_container_get(chunk -> conf, LLSM_CONF_FNYQ);
-  FP_TYPE* liprad = llsm_container_get(chunk -> conf, LLSM_CONF_LIPRADIUS);
+  FP_TYPE* fnyq = (FP_TYPE*)llsm_container_get(chunk -> conf, LLSM_CONF_FNYQ);
+  FP_TYPE* liprad = (FP_TYPE*)llsm_container_get(chunk -> conf, LLSM_CONF_LIPRADIUS);
 
   FP_TYPE pulse_previous = 0; // aligned to zero-time phase of glottal flow
   int pbp_periods = 0;
@@ -172,11 +172,11 @@ static FP_TYPE* llsm_synthesize_harmonics(llsm_soptions* options,
     if(f0[i] == 0) continue; // skip unvoiced frames
     int baseidx = i * thop * fs;
     llsm_container* src_frame = chunk -> frames[i];
-    FP_TYPE* vsphse = llsm_container_get(src_frame, LLSM_FRAME_VSPHSE);
-    FP_TYPE* vtmagn = llsm_container_get(src_frame, LLSM_FRAME_VTMAGN);
-    FP_TYPE* rd = llsm_container_get(src_frame, LLSM_FRAME_RD);
-    int* pbpsyn = llsm_container_get(src_frame, LLSM_FRAME_PBPSYN);
-    llsm_pbpeffect* pbpeff = llsm_container_get(src_frame, LLSM_FRAME_PBPEFF);
+    FP_TYPE* vsphse = (FP_TYPE*)llsm_container_get(src_frame, LLSM_FRAME_VSPHSE);
+    FP_TYPE* vtmagn = (FP_TYPE*)llsm_container_get(src_frame, LLSM_FRAME_VTMAGN);
+    FP_TYPE* rd = (FP_TYPE*)llsm_container_get(src_frame, LLSM_FRAME_RD);
+    int* pbpsyn = (int*)llsm_container_get(src_frame, LLSM_FRAME_PBPSYN);
+    llsm_pbpeffect* pbpeff = (llsm_pbpeffect*)llsm_container_get(src_frame, LLSM_FRAME_PBPEFF);
     if(vsphse == NULL || vtmagn == NULL || rd == NULL) continue;
     int pbp_on = pbpsyn != NULL && pbpsyn[0] == 1;
     int nspec = llsm_fparray_length(vtmagn);
@@ -263,7 +263,7 @@ static FP_TYPE* llsm_synthesize_harmonics(llsm_soptions* options,
     // harmonic model synthesis
     if(llsm_container_get(src_frame, LLSM_FRAME_HM) == NULL)
       llsm_frame_tolayer0(src_frame, chunk -> conf);
-    llsm_hmframe* hm = llsm_container_get(src_frame, LLSM_FRAME_HM);
+    llsm_hmframe* hm = (llsm_hmframe*)llsm_container_get(src_frame, LLSM_FRAME_HM);
     if(hm == NULL) continue;
     int nhar = min(maxnhar, hm -> nhar);
     FP_TYPE* yi = llsm_synthesize_harmonic_frame_auto(options,
@@ -294,7 +294,7 @@ static FP_TYPE* llsm_synthesize_noise_envelope(llsm_soptions* options,
   FP_TYPE* w = hanning(nwin);
   llsm_hmframe* unvoiced_hm = llsm_create_hmframe(0);
   for(int i = 0; i < nfrm; i ++) {
-    llsm_nmframe* nm = llsm_container_get(chunk -> frames[i], LLSM_FRAME_NM);
+    llsm_nmframe* nm = (llsm_nmframe*)llsm_container_get(chunk -> frames[i], LLSM_FRAME_NM);
     llsm_hmframe* hm = f0[i] > 0 ? nm -> eenv[channel] : unvoiced_hm;
     FP_TYPE* yi = llsm_synthesize_harmonic_frame_auto(options,
       hm -> ampl, hm -> phse, hm -> nhar, f0[i] / fs, nwin);
@@ -323,18 +323,18 @@ static void llsm_analyze_noise_psd(llsm_aoptions* options, FP_TYPE* x,
 
   // compute spectral envelope (harmonic + noise power)
   int nfft_spgm = pow(2, ceil(log2(0.03 * fs)));
-  FP_TYPE** spgm = malloc2d(nfrm, nfft_spgm / 2 + 1, sizeof(FP_TYPE));
+  FP_TYPE** spgm = (FP_TYPE**)malloc2d(nfrm, nfft_spgm / 2 + 1, sizeof(FP_TYPE));
   int* center = (int*)calloc(nfrm, sizeof(int));
   int* winsize_spgm = (int*)calloc(nfrm, sizeof(int));
   for(int i = 0; i < nfrm; i ++) {
-    FP_TYPE* f0 = llsm_container_get(dst_chunk -> frames[i], LLSM_FRAME_F0);
+    FP_TYPE* f0 = (FP_TYPE*)llsm_container_get(dst_chunk -> frames[i], LLSM_FRAME_F0);
     winsize_spgm[i] = f0 == NULL || f0[0] == 0 ? nwin : fs / f0[0] * 3;
     center[i] = round(i * options -> thop * fs);
   }
   llsm_compute_spectrogram(x, nx, center, winsize_spgm, nfrm, nfft_spgm,
     "hanning", spgm, NULL);
   for(int i = 0; i < nfrm; i ++) {
-    FP_TYPE* f0 = llsm_container_get(dst_chunk -> frames[i], LLSM_FRAME_F0);
+    FP_TYPE* f0 = (FP_TYPE*)llsm_container_get(dst_chunk -> frames[i], LLSM_FRAME_F0);
     FP_TYPE f0_scaled = (f0 == NULL || f0[0] == 0 ? 200 : f0[0]) / fs;
     FP_TYPE* env = spec2env(spgm[i], nfft_spgm, f0_scaled, NULL);
     for(int j = 0; j < nspec; j ++) {
@@ -346,9 +346,9 @@ static void llsm_analyze_noise_psd(llsm_aoptions* options, FP_TYPE* x,
   free(winsize_spgm);
 
   // transposed PSD spectrogram
-  FP_TYPE** spgm_psd = malloc2d(nspec, nfrm, sizeof(FP_TYPE));
+  FP_TYPE** spgm_psd = (FP_TYPE**)malloc2d(nspec, nfrm, sizeof(FP_TYPE));
   // PSD residual vectors
-  FP_TYPE** spgm_res = malloc2d(nfrm, nspec, sizeof(FP_TYPE));
+  FP_TYPE** spgm_res = (FP_TYPE**)malloc2d(nfrm, nspec, sizeof(FP_TYPE));
   // compute noise PSD
   FP_TYPE* psdvec = (FP_TYPE*)calloc(nspec, sizeof(FP_TYPE));
   for(int i = 0; i < nfrm; i ++) {
@@ -387,7 +387,7 @@ static void llsm_analyze_noise_psd(llsm_aoptions* options, FP_TYPE* x,
 
   FP_TYPE* dst_axis = linspace(0, fs / 2.0, options -> npsd);
   for(int i = 0; i < nfrm; i ++) {
-    llsm_nmframe* dst_nm = llsm_container_get(
+    llsm_nmframe* dst_nm = (llsm_nmframe*)llsm_container_get(
       dst_chunk -> frames[i], LLSM_FRAME_NM);
     for(int j = 0; j < nspec; j ++) psdvec[j] = spgm_psd[j][i];
     FP_TYPE* dst_psd = interp1u(
@@ -446,7 +446,7 @@ static void llsm_analyze_noise_envelope(llsm_aoptions* options,
     llsm_compute_dc(ce, nx, center, nwin, nfrm, tmp_dc);
     // Store the results.
     for(int i = 0; i < nfrm; i ++) {
-      llsm_nmframe* dst_nm = llsm_container_get(dst_chunk -> frames[i],
+      llsm_nmframe* dst_nm = (llsm_nmframe*)llsm_container_get(dst_chunk -> frames[i],
         LLSM_FRAME_NM);
       dst_nm -> edc[c] = tmp_dc[i];
       if(f0[i] == 0) continue;
@@ -489,7 +489,7 @@ llsm_chunk* llsm_analyze(llsm_aoptions* options, FP_TYPE* x, int nx,
 
   // set F0 for all the frames
   for(int i = 0; i < nfrm; i ++) {
-    FP_TYPE* if0 = llsm_container_get(ret -> frames[i], LLSM_FRAME_F0);
+    FP_TYPE* if0 = (FP_TYPE*)llsm_container_get(ret -> frames[i], LLSM_FRAME_F0);
     if0[0] = f0[i];
   }
 
@@ -511,12 +511,12 @@ llsm_chunk* llsm_analyze(llsm_aoptions* options, FP_TYPE* x, int nx,
 }
 
 int llsm_conf_checklayer0(llsm_container* src) {
-  int* nfrm = llsm_container_get(src, LLSM_CONF_NFRM);
-  FP_TYPE* thop = llsm_container_get(src, LLSM_CONF_THOP);
-  int* npsd = llsm_container_get(src, LLSM_CONF_NPSD);
-  FP_TYPE* fnyq = llsm_container_get(src, LLSM_CONF_FNYQ);
-  int* nchannel = llsm_container_get(src, LLSM_CONF_NCHANNEL);
-  FP_TYPE* chanfreq = llsm_container_get(src, LLSM_CONF_CHANFREQ);
+  int* nfrm = (int*)llsm_container_get(src, LLSM_CONF_NFRM);
+  FP_TYPE* thop = (FP_TYPE*)llsm_container_get(src, LLSM_CONF_THOP);
+  int* npsd = (int*)llsm_container_get(src, LLSM_CONF_NPSD);
+  FP_TYPE* fnyq = (FP_TYPE*)llsm_container_get(src, LLSM_CONF_FNYQ);
+  int* nchannel = (int*)llsm_container_get(src, LLSM_CONF_NCHANNEL);
+  FP_TYPE* chanfreq = (FP_TYPE*)llsm_container_get(src, LLSM_CONF_CHANFREQ);
   if(nfrm == NULL || thop == NULL || npsd == NULL ||
      fnyq == NULL || nchannel == NULL || chanfreq == NULL) return 0;
   return 1;
@@ -524,7 +524,7 @@ int llsm_conf_checklayer0(llsm_container* src) {
 
 static int llsm_synthesis_check_integrity(llsm_chunk* src) {
   if(! llsm_conf_checklayer0(src -> conf)) return 0;
-  int* nfrm = llsm_container_get(src -> conf, LLSM_CONF_NFRM);
+  int* nfrm = (int*)llsm_container_get(src -> conf, LLSM_CONF_NFRM);
   for(int i = 0; i < *nfrm; i ++)
     if(! llsm_frame_checklayer0(src -> frames[i]) &&
        ! llsm_frame_checklayer1(src -> frames[i]))
@@ -535,7 +535,7 @@ static int llsm_synthesis_check_integrity(llsm_chunk* src) {
 static FP_TYPE* llsm_synthesize_noise_excitation(llsm_soptions* options,
   llsm_chunk* src, FP_TYPE* f0, int nfrm, FP_TYPE thop, FP_TYPE fs, int ny) {
   FP_TYPE* y = (FP_TYPE*)calloc(ny, sizeof(FP_TYPE));
-  FP_TYPE* chanfreq = llsm_container_get(src -> conf, LLSM_CONF_CHANFREQ);
+  FP_TYPE* chanfreq = (FP_TYPE*)llsm_container_get(src -> conf, LLSM_CONF_CHANFREQ);
   int nchannel = *((int*)llsm_container_get(src -> conf, LLSM_CONF_NCHANNEL));
   for(int c = 0; c < nchannel; c ++) {
     FP_TYPE fmin = c == 0 ? 0 : chanfreq[c - 1];
@@ -579,8 +579,8 @@ static FP_TYPE* llsm_filter_noise(llsm_chunk* src, int nfrm, FP_TYPE thop,
   FP_TYPE* src_psd = (FP_TYPE*)calloc(npsd, sizeof(FP_TYPE));
   // STFT -> PSD -> diff -> filter -> ISTFT
   for(int i = 0; i < nfrm; i ++) {
-    llsm_nmframe* nm = llsm_container_get(src -> frames[i], LLSM_FRAME_NM);
-    FP_TYPE* resvec = llsm_container_get(src -> frames[i], LLSM_FRAME_PSDRES);
+    llsm_nmframe* nm = (llsm_nmframe*)llsm_container_get(src -> frames[i], LLSM_FRAME_NM);
+    FP_TYPE* resvec = (FP_TYPE*)llsm_container_get(src -> frames[i], LLSM_FRAME_PSDRES);
     FP_TYPE peak = maxfp(nm -> psd, npsd);
     if(peak < -100) continue; // -100 dB noise floor
 
@@ -672,12 +672,12 @@ void llsm_delete_output(llsm_output* dst) {
 }
 
 FP_TYPE* llsm_chunk_getf0(llsm_chunk* src, int* dst_nfrm) {
-  int* nfrm = llsm_container_get(src -> conf, LLSM_CONF_NFRM);
+  int* nfrm = (int*)llsm_container_get(src -> conf, LLSM_CONF_NFRM);
   if(nfrm == NULL) return NULL;
   FP_TYPE* f0 = (FP_TYPE*)calloc(*nfrm, sizeof(FP_TYPE));
   *dst_nfrm = *nfrm;
   for(int i = 0; i < *nfrm; i ++) {
-    FP_TYPE* if0 = llsm_container_get(src -> frames[i], LLSM_FRAME_F0);
+    FP_TYPE* if0 = (FP_TYPE*)llsm_container_get(src -> frames[i], LLSM_FRAME_F0);
     if(if0 != NULL)
       f0[i] = if0[0];
   }
@@ -685,7 +685,7 @@ FP_TYPE* llsm_chunk_getf0(llsm_chunk* src, int* dst_nfrm) {
 }
 
 void llsm_chunk_phasesync_rps(llsm_chunk* dst, int layer1_based) {
-  int* nfrm = llsm_container_get(dst -> conf, LLSM_CONF_NFRM);
+  int* nfrm = (int*)llsm_container_get(dst -> conf, LLSM_CONF_NFRM);
   if(nfrm == NULL) return;
   for(int i = 0; i < *nfrm; i ++)
     llsm_frame_phasesync_rps(dst -> frames[i], layer1_based);

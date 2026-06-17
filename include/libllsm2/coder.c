@@ -44,12 +44,12 @@ typedef struct {
 llsm_coder* llsm_create_coder(llsm_container* conf, int order_spec,
   int order_bap) {
   llsm_coder_* ret = (llsm_coder_*)malloc(sizeof(llsm_coder_));
-  FP_TYPE* fnyq = llsm_container_get(conf, LLSM_CONF_FNYQ);
-  int* nchannel = llsm_container_get(conf, LLSM_CONF_NCHANNEL);
-  int* nhar_e = llsm_container_get(conf, LLSM_CONF_MAXNHAR_E);
-  int* npsd = llsm_container_get(conf, LLSM_CONF_NPSD);
-  int* nspec = llsm_container_get(conf, LLSM_CONF_NSPEC);
-  FP_TYPE* liprad = llsm_container_get(conf, LLSM_CONF_LIPRADIUS);
+  FP_TYPE* fnyq = (FP_TYPE*)llsm_container_get(conf, LLSM_CONF_FNYQ);
+  int* nchannel = (int*)llsm_container_get(conf, LLSM_CONF_NCHANNEL);
+  int* nhar_e = (int*)llsm_container_get(conf, LLSM_CONF_MAXNHAR_E);
+  int* npsd = (int*)llsm_container_get(conf, LLSM_CONF_NPSD);
+  int* nspec = (int*)llsm_container_get(conf, LLSM_CONF_NSPEC);
+  FP_TYPE* liprad = (FP_TYPE*)llsm_container_get(conf, LLSM_CONF_LIPRADIUS);
   ret -> order_spec = order_spec;
   ret -> order_bap = order_bap;
   ret -> nfullspec = (nspec[0] - 1) * 2;
@@ -87,8 +87,8 @@ FP_TYPE* llsm_coder_encode(llsm_coder* c_, llsm_container* src) {
   int ns = c -> nfullspec / 2 + 1;
   FP_TYPE* enc = (FP_TYPE*)calloc(c -> order_spec + c -> order_bap + 3, sizeof(FP_TYPE));
 
-  FP_TYPE* f0 = llsm_container_get(src, LLSM_FRAME_F0);
-  llsm_nmframe* nm = llsm_container_get(src, LLSM_FRAME_NM);
+  FP_TYPE* f0 = (FP_TYPE*)llsm_container_get(src, LLSM_FRAME_F0);
+  llsm_nmframe* nm = (llsm_nmframe*)llsm_container_get(src, LLSM_FRAME_NM);
   enc[0] = f0[0] > 0; // voicing
   enc[1] = f0[0];     // f0
 
@@ -100,8 +100,8 @@ FP_TYPE* llsm_coder_encode(llsm_coder* c_, llsm_container* src) {
     spec_psd[j] = exp_2(IN2LOG(spec_psd[j]));
 
   if(f0[0] > 0) {
-    FP_TYPE* rd = llsm_container_get(src, LLSM_FRAME_RD);
-    FP_TYPE* vtmagn = llsm_container_get(src, LLSM_FRAME_VTMAGN);
+    FP_TYPE* rd = (FP_TYPE*)llsm_container_get(src, LLSM_FRAME_RD);
+    FP_TYPE* vtmagn = (FP_TYPE*)llsm_container_get(src, LLSM_FRAME_VTMAGN);
     enc[2] = rd[0];
     // spectral synthesis
     lfmodel gfm = lfmodel_from_rd(rd[0], 1.0 / f0[0], 1.0);
@@ -172,7 +172,7 @@ static llsm_container* llsm_coder_decode(llsm_coder* c_, FP_TYPE* src,
   int nhar = voicing ? c -> fnyq / f0 : 0;
   llsm_container* ret = llsm_create_frame(
     nhar, c -> nchannel, c -> nhar_e, c -> npsd);
-  llsm_nmframe* nm = llsm_container_get(ret, LLSM_FRAME_NM);
+  llsm_nmframe* nm = (llsm_nmframe*)llsm_container_get(ret, LLSM_FRAME_NM);
   llsm_container_attach(ret, LLSM_FRAME_RD,
     llsm_create_fp(rd), llsm_delete_fp, llsm_copy_fp);
   llsm_container_attach(ret, LLSM_FRAME_F0,

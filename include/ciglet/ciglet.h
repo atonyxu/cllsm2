@@ -359,7 +359,7 @@ static inline void** malloc2d_(size_t m, size_t n, size_t size) {
 
 #define copy2d(src, m, n, size) (void*)copy2d_((void**)src, m, n, size)
 static inline void** copy2d_(void** src, size_t m, size_t n, size_t size) {
-  void** ret = malloc2d(m, n, size);
+  void** ret = (void**)malloc2d(m, n, size);
   for(size_t i = 0; i < m; i ++)
     memcpy(ret[i], src[i], n * size);
   return ret;

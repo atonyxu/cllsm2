@@ -8,6 +8,7 @@
     nvcc -O3 -DFP_TYPE=float -I include -o build\cllsm2_extract_cuda.exe cllsm2_extract_cuda.cu -lcufft -lcudart
 */
 
+#define _USE_MATH_DEFINES
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,7 +41,8 @@ static cufftHandle get_plan(int n, int isgn, int type) {
   if(type == 0)      CUFFT_CHECK(cufftPlan1d(&p, n, CUFFT_C2C, 1));
   else if(type == 1) CUFFT_CHECK(cufftPlan1d(&p, n, CUFFT_R2C, 1));
   else               CUFFT_CHECK(cufftPlan1d(&p, n, CUFFT_C2R, 1));
-  plans[nplans++] = (plan_entry){n, isgn, type, p, 1};
+  plans[nplans].n = n; plans[nplans].isgn = isgn; plans[nplans].type = type;
+  plans[nplans].p = p; plans[nplans].ok = 1; nplans++;
   return p;
 }
 
@@ -206,6 +208,7 @@ static void gpu_czt(float* x, int nx, float f0, float fs, int nhar,
 #include "ciglet/ciglet.c"
 #include "ciglet/external/fast_median.c"
 
+#include "libllsm2/llsm.h"
 #include "libllsm2/constants.h"
 #include "libllsm2/buffer.h"
 #include "libllsm2/container.c"

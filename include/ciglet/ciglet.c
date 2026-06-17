@@ -1066,7 +1066,7 @@ void cig_correlogram(FP_TYPE* x, int nx, int* center, int* nwin, int nfrm,
 }
 
 FP_TYPE** cig_invcrgm(FP_TYPE** R, int nfrm, int max_period, int fs, FP_TYPE* faxis, int nf) {
-  FP_TYPE** Ri = malloc2d(nfrm, nf, sizeof(FP_TYPE*));
+  FP_TYPE** Ri = (FP_TYPE**)malloc2d(nfrm, nf, sizeof(FP_TYPE*));
   FP_TYPE* Raxis = linspace(0, max_period - 1, max_period);
   FP_TYPE* invmap = (FP_TYPE*)calloc(nf, sizeof(FP_TYPE));
   for(int i = 0; i < nf; i ++)
@@ -1337,7 +1337,7 @@ void cig_delete_filterbank(filterbank* dst) {
 
 FP_TYPE** cig_filterbank_spectrogram(filterbank* fbank, FP_TYPE** S, int nfrm,
   int nfft, int fs, int crtenergy) {
-  FP_TYPE** X = malloc2d(nfrm, fbank -> nchannel, sizeof(FP_TYPE));
+  FP_TYPE** X = (FP_TYPE**)malloc2d(nfrm, fbank -> nchannel, sizeof(FP_TYPE));
 # ifdef _OPENMP
 # pragma omp parallel for
 # endif
@@ -1475,14 +1475,12 @@ static lfparam lfparam_from_lfmodel(lfmodel model) {
     scale = 1.0 / model.T0 / max_hz;
     model.T0 = 1.0 / max_hz;
   }
-  lfparam ret = {
-    .T0 = model.T0,
-    .Te = model.T0 * model.te,
-    .Tp = model.T0 * model.tp,
-    .Ta = model.T0 * model.ta,
-    .a  = 0,
-    .scale = scale
-  };
+  lfparam ret = {0};
+  ret.T0 = model.T0;
+  ret.Te = model.T0 * model.te;
+  ret.Tp = model.T0 * model.tp;
+  ret.Ta = model.T0 * model.ta;
+  ret.scale = scale;
   ret.wg = M_PI / ret.Tp;
   ret.sin_wgTe = sin_3(ret.wg * ret.Te);
   ret.cos_wgTe = cos_3(ret.wg * ret.Te);

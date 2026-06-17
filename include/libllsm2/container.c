@@ -157,9 +157,9 @@ void llsm_container_remove(llsm_container* dst, int index) {
 
 llsm_chunk* llsm_create_chunk(llsm_container* conf, int init_frames) {
   llsm_chunk* ret = (llsm_chunk*)malloc(sizeof(llsm_chunk));
-  int* nfrm = llsm_container_get(conf, LLSM_CONF_NFRM);
-  int* nchannel = llsm_container_get(conf, LLSM_CONF_NCHANNEL);
-  int* npsd = llsm_container_get(conf, LLSM_CONF_NPSD);
+  int* nfrm = (int*)llsm_container_get(conf, LLSM_CONF_NFRM);
+  int* nchannel = (int*)llsm_container_get(conf, LLSM_CONF_NCHANNEL);
+  int* npsd = (int*)llsm_container_get(conf, LLSM_CONF_NPSD);
   if(nchannel == NULL || npsd == NULL) return NULL;
 
   ret -> conf = llsm_copy_container(conf);
@@ -175,7 +175,7 @@ llsm_chunk* llsm_create_chunk(llsm_container* conf, int init_frames) {
 
 llsm_chunk* llsm_copy_chunk(llsm_chunk* src) {
   llsm_chunk* ret = llsm_create_chunk(src -> conf, 0);
-  int* nfrm = llsm_container_get(src -> conf, LLSM_CONF_NFRM);
+  int* nfrm = (int*)llsm_container_get(src -> conf, LLSM_CONF_NFRM);
   if(nfrm != NULL)
     for(int i = 0; i < *nfrm; i ++)
       ret -> frames[i] = llsm_copy_container(src -> frames[i]);
@@ -184,7 +184,7 @@ llsm_chunk* llsm_copy_chunk(llsm_chunk* src) {
 
 void llsm_delete_chunk(llsm_chunk* dst) {
   if(dst == NULL) return;
-  int* nfrm = llsm_container_get(dst -> conf, LLSM_CONF_NFRM);
+  int* nfrm = (int*)llsm_container_get(dst -> conf, LLSM_CONF_NFRM);
   if(nfrm != NULL) {
     for(int i = 0; i < *nfrm; i ++)
       llsm_delete_container(dst -> frames[i]);

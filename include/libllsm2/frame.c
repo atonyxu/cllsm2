@@ -150,14 +150,14 @@ llsm_container* llsm_create_frame(int nhar, int nchannel, int nhar_e,
 }
 
 void llsm_frame_phaseshift(llsm_container* dst, FP_TYPE theta) {
-  llsm_hmframe* hm = llsm_container_get(dst, LLSM_FRAME_HM);
+  llsm_hmframe* hm = (llsm_hmframe*)llsm_container_get(dst, LLSM_FRAME_HM);
   if(hm != NULL)
     llsm_hmframe_phaseshift(hm, theta);
-  llsm_nmframe* nm = llsm_container_get(dst, LLSM_FRAME_NM);
+  llsm_nmframe* nm = (llsm_nmframe*)llsm_container_get(dst, LLSM_FRAME_NM);
   if(nm != NULL)
     for(int i = 0; i < nm -> nchannel; i ++)
       llsm_hmframe_phaseshift(nm -> eenv[i], theta);
-  FP_TYPE* vs_phse = llsm_container_get(dst, LLSM_FRAME_VSPHSE);
+  FP_TYPE* vs_phse = (FP_TYPE*)llsm_container_get(dst, LLSM_FRAME_VSPHSE);
   if(vs_phse != NULL) {
     int nhar = llsm_fparray_length(vs_phse);
     for(int i = 0; i < nhar; i ++)
@@ -166,8 +166,8 @@ void llsm_frame_phaseshift(llsm_container* dst, FP_TYPE theta) {
 }
 
 void llsm_frame_phasesync_rps(llsm_container* dst, int layer1_based) {
-  llsm_hmframe* hm = llsm_container_get(dst, LLSM_FRAME_HM);
-  FP_TYPE* vs_phse = llsm_container_get(dst, LLSM_FRAME_VSPHSE);
+  llsm_hmframe* hm = (llsm_hmframe*)llsm_container_get(dst, LLSM_FRAME_HM);
+  FP_TYPE* vs_phse = (FP_TYPE*)llsm_container_get(dst, LLSM_FRAME_VSPHSE);
   FP_TYPE phase_ref = 0;
   if(layer1_based && vs_phse != NULL && llsm_fparray_length(vs_phse) > 0) {
     phase_ref = vs_phse[0];
@@ -179,11 +179,11 @@ void llsm_frame_phasesync_rps(llsm_container* dst, int layer1_based) {
 
 FP_TYPE* llsm_frame_compute_snr(llsm_container* src, llsm_container* conf,
   int as_aperiodicity) {
-  FP_TYPE* f0 = llsm_container_get(src, LLSM_FRAME_F0);
-  llsm_hmframe* hm = llsm_container_get(src, LLSM_FRAME_HM);
-  llsm_nmframe* nm = llsm_container_get(src, LLSM_FRAME_NM);
-  FP_TYPE* fnyq = llsm_container_get(conf, LLSM_CONF_FNYQ);
-  FP_TYPE* noswarp = llsm_container_get(conf, LLSM_CONF_NOSWARP);
+  FP_TYPE* f0 = (FP_TYPE*)llsm_container_get(src, LLSM_FRAME_F0);
+  llsm_hmframe* hm = (llsm_hmframe*)llsm_container_get(src, LLSM_FRAME_HM);
+  llsm_nmframe* nm = (llsm_nmframe*)llsm_container_get(src, LLSM_FRAME_NM);
+  FP_TYPE* fnyq = (FP_TYPE*)llsm_container_get(conf, LLSM_CONF_FNYQ);
+  FP_TYPE* noswarp = (FP_TYPE*)llsm_container_get(conf, LLSM_CONF_NOSWARP);
   if(f0 == NULL || hm == NULL || nm == NULL) return NULL;
   if(fnyq == NULL || noswarp == NULL) return NULL;
   int nfft = max(64, pow(2, ceil(log2(hm -> nhar) + 2)));
@@ -209,21 +209,21 @@ FP_TYPE* llsm_frame_compute_snr(llsm_container* src, llsm_container* conf,
 }
 
 int llsm_frame_checklayer0(llsm_container* src) {
-  FP_TYPE* f0 = llsm_container_get(src, LLSM_FRAME_F0);
-  llsm_hmframe* hm = llsm_container_get(src, LLSM_FRAME_HM);
-  llsm_nmframe* nm = llsm_container_get(src, LLSM_FRAME_NM);
+  FP_TYPE* f0 = (FP_TYPE*)llsm_container_get(src, LLSM_FRAME_F0);
+  llsm_hmframe* hm = (llsm_hmframe*)llsm_container_get(src, LLSM_FRAME_HM);
+  llsm_nmframe* nm = (llsm_nmframe*)llsm_container_get(src, LLSM_FRAME_NM);
   if(f0 == NULL || nm == NULL) return 0;
   if(*f0 != 0 && hm == NULL) return 0;
   return 1;
 }
 
 int llsm_frame_checklayer1(llsm_container* src) {
-  FP_TYPE* f0 = llsm_container_get(src, LLSM_FRAME_F0);
-  FP_TYPE* rd = llsm_container_get(src, LLSM_FRAME_RD);
-  llsm_nmframe* nm = llsm_container_get(src, LLSM_FRAME_NM);
+  FP_TYPE* f0 = (FP_TYPE*)llsm_container_get(src, LLSM_FRAME_F0);
+  FP_TYPE* rd = (FP_TYPE*)llsm_container_get(src, LLSM_FRAME_RD);
+  llsm_nmframe* nm = (llsm_nmframe*)llsm_container_get(src, LLSM_FRAME_NM);
   if(f0 == NULL || rd == NULL || nm == NULL) return 0;
-  FP_TYPE* spec_env = llsm_container_get(src, LLSM_FRAME_VTMAGN);
-  FP_TYPE* vs_phse = llsm_container_get(src, LLSM_FRAME_VSPHSE);
+  FP_TYPE* spec_env = (FP_TYPE*)llsm_container_get(src, LLSM_FRAME_VTMAGN);
+  FP_TYPE* vs_phse = (FP_TYPE*)llsm_container_get(src, LLSM_FRAME_VSPHSE);
   if(f0[0] > 0 && (spec_env == NULL || vs_phse == NULL)) return 0;
   return 1;
 }

@@ -62,9 +62,9 @@ static void make_filtered_pulse_spectrum(llsm_container* src, lfmodel source,
   FP_TYPE* vt_harphse, int nhar, FP_TYPE* freq_axis,
   FP_TYPE* dst_re, FP_TYPE* dst_im) {
   int halfsize = size / 2 + 1;
-  FP_TYPE* rd = llsm_container_get(src, LLSM_FRAME_RD);
-  FP_TYPE* f0 = llsm_container_get(src, LLSM_FRAME_F0);
-  FP_TYPE* vsphse = llsm_container_get(src, LLSM_FRAME_VSPHSE);
+  FP_TYPE* rd = (FP_TYPE*)llsm_container_get(src, LLSM_FRAME_RD);
+  FP_TYPE* f0 = (FP_TYPE*)llsm_container_get(src, LLSM_FRAME_F0);
+  FP_TYPE* vsphse = (FP_TYPE*)llsm_container_get(src, LLSM_FRAME_VSPHSE);
   FP_TYPE* freq_har = (FP_TYPE*)calloc(nhar + 1, sizeof(FP_TYPE));
   FP_TYPE* phse_har = (FP_TYPE*)calloc(nhar + 1, sizeof(FP_TYPE));
   for(int i = 0; i <= nhar; i ++) freq_har[i] = i * f0[0];
@@ -140,9 +140,9 @@ FP_TYPE* llsm_make_filtered_pulse(llsm_container* src, lfmodel* sources,
   for(int i = 0; i < halfsize; i ++)
     freq_axis[i] = i * fs / size;
 
-  FP_TYPE* vtmagn = llsm_container_get(src, LLSM_FRAME_VTMAGN);
-  FP_TYPE* vsphse = llsm_container_get(src, LLSM_FRAME_VSPHSE);
-  FP_TYPE* f0 = llsm_container_get(src, LLSM_FRAME_F0);
+  FP_TYPE* vtmagn = (FP_TYPE*)llsm_container_get(src, LLSM_FRAME_VTMAGN);
+  FP_TYPE* vsphse = (FP_TYPE*)llsm_container_get(src, LLSM_FRAME_VSPHSE);
+  FP_TYPE* f0 = (FP_TYPE*)llsm_container_get(src, LLSM_FRAME_F0);
   int nspec = llsm_fparray_length(vtmagn);
   int nhar = llsm_fparray_length(vsphse);
 
