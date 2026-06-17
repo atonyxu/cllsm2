@@ -149,7 +149,6 @@ jobs:
         run: |
           if [ -f build/cllsm2_extract_cuda ]; then
             ls -lh build/cllsm2_extract_cuda
-            file build/cllsm2_extract_cuda
           else
             echo "ERROR: binary not found"
             exit 1
