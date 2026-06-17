@@ -694,7 +694,7 @@ void llsm_chunk_phasesync_rps(llsm_chunk* dst, int layer1_based) {
 void llsm_chunk_phasepropagate(llsm_chunk* dst, int sign) {
   int nfrm = 0;
   FP_TYPE* f0 = llsm_chunk_getf0(dst, & nfrm);
-  FP_TYPE* thop = llsm_container_get(dst -> conf, LLSM_CONF_THOP);
+  FP_TYPE* thop = (FP_TYPE*)llsm_container_get(dst -> conf, LLSM_CONF_THOP);
   if(thop == NULL || f0 == NULL) return;
   FP_TYPE* delta_phase = cumsum(f0, nfrm);
   for(int i = 0; i < nfrm; i ++) {
