@@ -17,7 +17,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/conda_pkgs_dir
-          key: conda-win-cuda128-msvc2022-v1
+          key: conda-win-cuda128-msvc2022-v2
           restore-keys: |
             conda-win-cuda128-msvc2022-
 
@@ -28,7 +28,7 @@ jobs:
           auto-update-conda: false
           python-version: "3.10"
           activate-environment: cuda_dev
-          channels: nvidia/label/cuda-12.8.0,nvidia,conda-forge,defaults
+          channels: nvidia/label/cuda-12.8.0,conda-forge,defaults
           channel-priority: strict
           use-only-tar-bz2: false
 
@@ -36,15 +36,18 @@ jobs:
       - name: Install CUDA 12.8 & MSVC
         shell: pwsh
         run: |
+          # 1. 安装 CUDA 工具包
+          # 修正1: 移除了不存在的 libcufft-dev 包。在 Windows 上，cufft 库包含在 cuda-libraries-dev 中。
           conda install -y -c nvidia/label/cuda-12.8.0 `
             cuda-nvcc=12.8 `
             cuda-cudart-dev=12.8 `
-            cuda-libraries-dev=12.8 `
-            libcufft-dev=12.8
-          
+            cuda-libraries-dev=12.8
+
+          # 2. 安装 MSVC 编译器
+          # 修正2: vs2022_compiler_vars 包在 conda-forge 的 win-64 平台上不可用。
+          # 我们改用 vs2022_win-64，它包含了编译器本身和必要的环境变量。
           conda install -y -c conda-forge `
-            vs2022_win-64 `
-            vs2022_compiler_vars
+            vs2022_win-64
         env:
           CONDA_SOLVER: libmamba
 
@@ -53,21 +56,18 @@ jobs:
         shell: pwsh
         run: |
           # 激活 MSVC 环境变量
-          $activateScript = "$env:CONDA_PREFIX\etc\conda\activate.d\vs2022_compiler_vars.bat"
-          if (Test-Path $activateScript) {
-            cmd /c "`"$activateScript`" && set" | ForEach-Object {
-              if ($_ -match "^(.+?)=(.*)$") {
-                [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
-              }
-            }
-          } else {
-            Write-Error "MSVC activate script not found!"
-            exit 1
-          }
+          # 注意：vs2022_win-64 包会自动在激活环境时设置好编译器路径，
+          # 因此不再需要手动调用 vs2022_compiler_vars.bat 脚本。
+          # 我们可以直接使用 nvcc 和 cl。
+
+          # 验证编译器是否可用
+          Write-Host "Checking compilers..."
+          nvcc --version
+          cl
 
           New-Item -ItemType Directory -Force -Path build | Out-Null
 
-          # ⚠️ 多架构编译：覆盖 T4 / 30系 / 40系 / 50系
+          # 多架构编译：覆盖 T4 / 30系 / 40系 / 50系
           nvcc -O3 -DFP_TYPE=float `
             -gencode arch=compute_75,code=sm_75 `
             -gencode arch=compute_86,code=sm_86 `
