@@ -42,7 +42,6 @@ jobs:
             cuda-cudart-static=12.8 `
             cuda-libraries-dev=12.8 `
             libcufft-static `
-            libcublas-static `
             libculibos 
         env:
           CONDA_SOLVER: libmamba
@@ -91,7 +90,7 @@ jobs:
             -o build\cllsm2_extract_cuda.exe `
             cllsm2_extract_cuda.cu `
             -cudart static `
-            -lcufft_static -lcublas_static -lcublasLt_static -lculibos
+            -lcufft_static -lculibos
 
       # ========== 5. 验证产物 ==========
       - name: Show binary info
