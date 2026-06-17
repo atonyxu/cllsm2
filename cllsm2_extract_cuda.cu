@@ -444,12 +444,13 @@ int main(int argc, char** argv) {
   opts->hm_method  = atoi(argv[19]);
   opts->rel_winsize= (FP_TYPE)atof(argv[16]);
 
+  llsm_coder* coder = NULL;
   llsm_chunk* chunk = llsm_analyze(opts, audio, nx, (FP_TYPE)atof(argv[4]),
                                     f0csv, nf, NULL);
   if(!chunk) { fprintf(stderr, "analysis failed\n"); cleanup_gpu(); goto cleanup1; }
 
   llsm_chunk_tolayer1(chunk, atoi(argv[6]));
-  llsm_coder* coder = llsm_create_coder(chunk->conf, atoi(argv[14]), atoi(argv[15]));
+  coder = llsm_create_coder(chunk->conf, atoi(argv[14]), atoi(argv[15]));
   if(write_csv72(argv[3], coder, chunk, nf, atoi(argv[14]), atoi(argv[15]))) {
     fprintf(stderr, "write output failed\n");
     llsm_delete_coder(coder); llsm_delete_chunk(chunk); cleanup_gpu(); goto cleanup1;
