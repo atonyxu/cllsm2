@@ -1,0 +1,71 @@
+name: benchmark
+
+on: [workflow_dispatch]
+
+jobs:
+  windows-cuda-x64:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup CUDA
+        uses: Jimver/cuda-toolkit@v0.2.35
+        with:
+          cuda: '12.8.0'
+          use-github-cache: true
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Build CPU extract
+        shell: cmd
+        run: |
+          mkdir build
+          cl /O2 /MT /DFP_TYPE=float /Iinclude /Febuild\cllsm2_extract.exe ^
+            cllsm2_extract.c ^
+            include\libllsm2\container.c ^
+            include\libllsm2\frame.c ^
+            include\libllsm2\dsputils.c ^
+            include\libllsm2\llsmutils.c ^
+            include\libllsm2\layer0.c ^
+            include\libllsm2\layer1.c ^
+            include\libllsm2\coder.c ^
+            include\ciglet\ciglet.c ^
+            include\ciglet\external\fftsg_h.c ^
+            include\ciglet\external\fast_median.c
+
+      - name: Build CUDA extract
+        shell: cmd
+        run: |
+          nvcc -O3 -allow-unsupported-compiler -DFP_TYPE=float ^
+            -gencode arch=compute_75,code=sm_75 ^
+            -gencode arch=compute_86,code=sm_86 ^
+            -gencode arch=compute_89,code=sm_89 ^
+            -gencode arch=compute_120,code=sm_120 ^
+            -I include ^
+            -o build\cllsm2_extract_cuda.exe ^
+            cllsm2_extract_cuda.cu ^
+            -cudart static ^
+            -lcufft -lcublas -lcublasLt
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run benchmark
+        shell: pwsh
+        run: |
+          .\benchmark.ps1 -Runs 3 -AudioF32 test_audio.f32 -F0Csv test_f0.csv -OutCpu out_cpu.csv -OutCuda out_cuda.csv
+        continue-on-error: true
+
+      - name: Upload benchmark artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: |
+            test_audio.f32
+            test_f0.csv
+            out_cpu.csv
+            out_cuda.csv
