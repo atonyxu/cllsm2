@@ -30,7 +30,7 @@ jobs:
             -o build\cllsm2_extract_cuda.exe ^
             cllsm2_extract_cuda.cu ^
             -cudart static ^
-            -lcufft_static -lcublas_static -lcublasLt_static -lculibos
+            -lcufft -lcublas -lcublasLt
 
       - name: Show binary info
         shell: pwsh
