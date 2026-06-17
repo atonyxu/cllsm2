@@ -39,7 +39,9 @@ jobs:
           conda install -y -c nvidia/label/cuda-12.8.0 `
             cuda-nvcc=12.8 `
             cuda-cudart-dev=12.8 `
-            cuda-libraries-dev=12.8
+            cuda-cudart-static=12.8 `
+            cuda-libraries-dev=12.8 `
+            cuda-cufft-static=12.8 
         env:
           CONDA_SOLVER: libmamba
 
@@ -77,6 +79,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path build | Out-Null
 
           # 多架构编译：T4(sm_75) / 30系(sm_86) / 40系(sm_89) / 50系(sm_120)
+          # 静态链接 CUDA Runtime 和 cuFFT，使 exe 不依赖 CUDA DLL
           nvcc -O3 -DFP_TYPE=float `
             -gencode arch=compute_75,code=sm_75 `
             -gencode arch=compute_86,code=sm_86 `
@@ -85,7 +88,8 @@ jobs:
             -I include `
             -o build\cllsm2_extract_cuda.exe `
             cllsm2_extract_cuda.cu `
-            -lcufft -lcudart
+            -cudart static `
+            -lcufft_static -lcublas_static -lcublasLt_static -lculibos
 
       # ========== 5. 验证产物 ==========
       - name: Show binary info
