@@ -173,8 +173,8 @@ __global__ void czt_frame_kernel(const float* x, float* re, float* im,
 __global__ void extract_window_kernel(const float* x, int nx,
     const int* centers, const int* winsizes,
     float* dst, int nfft, int nfrm) {
-  int i = blockIdx.x;
-  int j = threadIdx.x;
+  int i = blockIdx.y;
+  int j = threadIdx.x + blockIdx.x * blockDim.x;
   if (i >= nfrm || j >= nfft) return;
   int ws = winsizes[i];
   int ct = centers[i];
@@ -292,7 +292,11 @@ static void ha_cuda(FP_TYPE* x, int nx, FP_TYPE fs, FP_TYPE* f0, int nfrm,
     CUDA_CHECK(cudaMemcpy(dwz, wz, (size_t)nv * sizeof(int),   cudaMemcpyHostToDevice));
 
     /* GPU: extract + window all frames in one kernel launch */
-    extract_window_kernel<<<nv, 256>>>(dx, nx, dct, dwz, dfrm, nfft, nv);
+    {
+      int bpf = (nfft + 255) / 256;
+      dim3 grid_dim(bpf, nv);
+      extract_window_kernel<<<grid_dim, 256>>>(dx, nx, dct, dwz, dfrm, nfft, nv);
+    }
 
     /* Batched cuFFT R2C (all frames, same nfft) */
     cufftHandle pl;
