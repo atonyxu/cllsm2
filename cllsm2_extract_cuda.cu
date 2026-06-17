@@ -70,59 +70,11 @@ static void cleanup_gpu(void) {
 }
 
 /* ================================================================== *
- *  Ooura FFT replacements (cuFFT wrappers)                            *
- *  Defined BEFORE including library .c files so they override.        *
+ *  Ooura FFT is provided by fftsg_h.c (included below).              *
+ *  GPU is used ONLY for the batched harmonic analysis in ha_cuda.     *
+ *  Individual FFT calls (~20K+ per file) stay on CPU via Ooura,       *
+ *  avoiding ~40K+ cudaMemcpy round-trips per inference.               *
  * ================================================================== */
-
-/* cdft: complex FFT on n floats (n/2 complex points) */
-static void cdft(int n, int isgn, FP_TYPE* a) {
-  int nc = n / 2;
-  float* d = gpialloc(n);
-  CUDA_CHECK(cudaMemcpy(d, a, (size_t)n * sizeof(float), cudaMemcpyHostToDevice));
-  cufftHandle p = get_plan(nc, isgn, 0);
-  CUFFT_CHECK(cufftExecC2C(p, (cufftComplex*)d, (cufftComplex*)d,
-    isgn < 0 ? CUFFT_FORWARD : CUFFT_INVERSE));
-  CUDA_CHECK(cudaMemcpy(a, d, (size_t)n * sizeof(float), cudaMemcpyDeviceToHost));
-}
-
-/* rdft: real FFT on n floats.
-   Convert between Ooura's in-place packed format and cuFFT's format.
-   Ooura R2C packing (n floats): a[0]=DC, a[1]=Nyq (n even), then
-     a[2k]=Re[k], a[2k+1]=Im[k] for k=1..n/2-1.
-   cuFFT R2C: (n/2+1) cufftComplex: [0].x=DC, [n/2].x=Nyq (n even),
-     [k].x=Re[k], [k].y=Im[k].
-*/
-static void rdft(int n, int isgn, FP_TYPE* a) {
-  int nc = n / 2;
-  if(isgn < 0) { /* R2C: Ooura -> cuFFT -> Ooura */
-    /* unpack Ooura format into cuFFT complex array */
-    cufftComplex* h = (cufftComplex*)malloc((size_t)(nc + 1) * sizeof(cufftComplex));
-    h[0].x = a[0]; h[0].y = 0;
-    if(n % 2 == 0) { h[nc].x = a[1]; h[nc].y = 0; }
-    for(int k = 1; k < nc; k++) { h[k].x = a[2*k]; h[k].y = a[2*k+1]; }
-    float* d = gpialloc((nc + 1) * 2);
-    CUDA_CHECK(cudaMemcpy(d, h, (size_t)(nc+1)*2*sizeof(float), cudaMemcpyHostToDevice));
-    cufftHandle p = get_plan(n, -1, 1);
-    CUFFT_CHECK(cufftExecR2C(p, d, (cufftComplex*)d));
-    CUDA_CHECK(cudaMemcpy(h, d, (size_t)(nc+1)*2*sizeof(float), cudaMemcpyDeviceToHost));
-    /* pack back to Ooura format */
-    a[0] = h[0].x;
-    if(n % 2 == 0) a[1] = h[nc].x;
-    for(int k = 1; k < nc; k++) { a[2*k] = h[k].x; a[2*k+1] = h[k].y; }
-    free(h);
-  } else { /* C2R: Ooura -> cuFFT -> Ooura */
-    cufftComplex* h = (cufftComplex*)malloc((size_t)(nc + 1) * sizeof(cufftComplex));
-    h[0].x = a[0]; h[0].y = 0;
-    if(n % 2 == 0) { h[nc].x = a[1]; h[nc].y = 0; }
-    for(int k = 1; k < nc; k++) { h[k].x = a[2*k]; h[k].y = a[2*k+1]; }
-    float* d = gpialloc(n);
-    CUDA_CHECK(cudaMemcpy(d, h, (size_t)(nc+1)*2*sizeof(float), cudaMemcpyHostToDevice));
-    cufftHandle p = get_plan(n, 1, 2);
-    CUFFT_CHECK(cufftExecC2R(p, (cufftComplex*)d, d));
-    CUDA_CHECK(cudaMemcpy(a, d, (size_t)n * sizeof(float), cudaMemcpyDeviceToHost));
-    free(h);
-  }
-}
 
 /* ddct: direct CPU implementation (not performance-critical).
    isgn = -1: DCT-II   C[k] = sum_j a[j] * cos(pi*(j+0.5)*k/n)
@@ -225,10 +177,10 @@ static void gpu_czt(float* x, int nx, float f0, float fs, int nhar,
 
 /* ================================================================== *
  *  Include library source files                                       *
- *  (fftsg_h.c excluded — cdft/rdft provided above)                   *
  * ================================================================== */
 
 #include "ciglet/ciglet.c"
+#include "ciglet/external/fftsg_h.c"
 #include "ciglet/external/fast_median.c"
 
 #include "libllsm2/llsm.h"
