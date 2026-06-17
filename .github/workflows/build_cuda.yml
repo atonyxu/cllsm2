@@ -138,6 +138,7 @@ jobs:
             -gencode arch=compute_89,code=sm_89 \
             -gencode arch=compute_120,code=sm_120 \
             -I include \
+            -Xcompiler -Wno-narrowing \
             -o build/cllsm2_extract_cuda \
             cllsm2_extract_cuda.cu \
             -cudart static \
