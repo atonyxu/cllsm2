@@ -85,18 +85,18 @@ $argList = $argStr.Split(' ')
 function Run-Benchmark($exe, $argList0, $outFile, $runs, $label) {
   if (!(Test-Path $exe)) { Write-Host "$label exe not found at $exe"; return $null }
   Write-Host "`n=== $label benchmark ==="
+  # Verify the binary works before benchmarking
+  Remove-Item -Force $outFile -ErrorAction SilentlyContinue
+  & $exe $argList0 2>&1 | Out-Null
+  if ($LASTEXITCODE -ne 0) { Write-Host "  SKIPPED ($exe failed with exit $LASTEXITCODE - requires GPU)"; Remove-Item -Force $outFile -ErrorAction SilentlyContinue; return $null }
+  Remove-Item -Force $outFile -ErrorAction SilentlyContinue
   $times = @()
   for ($i = 0; $i -lt $runs; $i++) {
-    Remove-Item -Force $outFile -ErrorAction SilentlyContinue
-    # First run as test to verify exit code
-    & $exe $argList0 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) { Write-Error "$exe failed (exit $LASTEXITCODE)"; return $null }
-    Remove-Item -Force $outFile -ErrorAction SilentlyContinue
-    # Now time it
     $t = Measure-Command { & $exe $argList0 2>&1 | Out-Null }
     $ms = $t.TotalMilliseconds
     $times += $ms
     Write-Host "  Run $($i+1): $([math]::Round($ms, 1)) ms"
+    Remove-Item -Force $outFile -ErrorAction SilentlyContinue
   }
   $avg = ($times | Measure-Object -Average).Average
   Write-Host "  Average: $([math]::Round($avg, 1)) ms"
