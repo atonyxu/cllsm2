@@ -12,14 +12,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ========== 1. 缓存 Conda 包（加速核心）==========
+      # ========== 1. 缓存 Conda 包 ==========
       - name: Cache Conda Packages
         uses: actions/cache@v4
         with:
           path: ~/conda_pkgs_dir
-          key: conda-win-cuda128-msvc2022-v3
+          key: conda-win-cuda128-v4
           restore-keys: |
-            conda-win-cuda128-msvc2022-
+            conda-win-cuda128-
 
       # ========== 2. 初始化 Conda 环境 ==========
       - name: Setup Miniconda
@@ -32,55 +32,35 @@ jobs:
           channel-priority: strict
           use-only-tar-bz2: false
 
-      # ========== 3. 安装 CUDA 12.8 + MSVC ==========
-      - name: Install CUDA 12.8 & MSVC
+      # ========== 3. 仅安装 CUDA 12.8 (不再通过 Conda 安装 MSVC) ==========
+      - name: Install CUDA 12.8 Toolkit
         shell: pwsh
         run: |
-          # 安装 CUDA 工具包 (Windows下cufft已包含在cuda-libraries-dev中)
           conda install -y -c nvidia/label/cuda-12.8.0 `
             cuda-nvcc=12.8 `
             cuda-cudart-dev=12.8 `
             cuda-libraries-dev=12.8
-
-          # 安装 MSVC 编译器
-          conda install -y -c conda-forge vs2022_win-64
         env:
           CONDA_SOLVER: libmamba
 
-      # ========== 4. 激活 MSVC 并编译（多架构）==========
+      # ========== 4. 使用系统原生 VS2022 编译（多架构）==========
       - name: Build CUDA extract (Windows x64)
         shell: pwsh
         run: |
-          # 1. 显式查找并激活 MSVC 环境变量
-          $activateScript = "$env:CONDA_PREFIX\etc\conda\activate.d\activate_vs2022.bat"
-          
-          if (-not (Test-Path $activateScript)) {
-            # 备用路径搜索
-            $activateScript = Get-ChildItem -Path "$env:CONDA_PREFIX\etc\conda\activate.d\" -Filter "*vs*.bat" -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+          # 1. 激活 windows-2022 Runner 原生自带的 VS2022
+          $vsWhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path $vsWhere)) {
+            Write-Error "vswhere.exe not found! Runner may not have VS installed."
+            exit 1
           }
-
-          if (Test-Path $activateScript) {
-            Write-Host "Activating MSVC via: $activateScript"
-            # 在 cmd 中执行 bat 脚本，捕获所有环境变量并注入到当前 PowerShell 进程
-            cmd /c "`"$activateScript`" && set" | ForEach-Object {
-              if ($_ -match "^(.+?)=(.*)$") {
-                [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
-              }
-            }
-          } else {
-            Write-Warning "MSVC activate script not found in Conda env. Falling back to system VS..."
-            # 回退方案：使用 windows-2022 runner 自带的系统级 VS2022
-            $vsWhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-            if (Test-Path $vsWhere) {
-              $vsPath = & $vsWhere -latest -property installationPath
-              cmd /c "`"$vsPath\Common7\Tools\VsDevCmd.bat`" -arch=amd64 && set" | ForEach-Object {
-                if ($_ -match "^(.+?)=(.*)$") {
-                  [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
-                }
-              }
-            } else {
-              Write-Error "No MSVC compiler found!"
-              exit 1
+          
+          $vsInstallPath = & $vsWhere -latest -property installationPath
+          Write-Host "Found VS2022 at: $vsInstallPath"
+          
+          # 执行 VsDevCmd.bat 并将环境变量注入当前 PowerShell 进程
+          cmd /c "`"$vsInstallPath\Common7\Tools\VsDevCmd.bat`" -arch=amd64 && set" | ForEach-Object {
+            if ($_ -match "^([^=]+)=(.*)$") {
+              [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
             }
           }
 
@@ -89,14 +69,14 @@ jobs:
           nvcc --version
           cl 2>&1 | Select-Object -First 1
           if ($LASTEXITCODE -ne 0) {
-            Write-Error "cl.exe is still not available after activation!"
+            Write-Error "cl.exe is not available!"
             exit 1
           }
 
           # 3. 创建输出目录并编译
           New-Item -ItemType Directory -Force -Path build | Out-Null
 
-          # 多架构编译：覆盖 T4(sm_75) / 30系(sm_86) / 40系(sm_89) / 50系(sm_120)
+          # 多架构编译：T4(sm_75) / 30系(sm_86) / 40系(sm_89) / 50系(sm_120)
           nvcc -O3 -DFP_TYPE=float `
             -gencode arch=compute_75,code=sm_75 `
             -gencode arch=compute_86,code=sm_86 `
