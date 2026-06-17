@@ -1,0 +1,48 @@
+name: build_cuda_complete
+
+on: [workflow_dispatch]
+
+jobs:
+  windows-cuda-x64:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup CUDA
+        uses: Jimver/cuda-toolkit@v0.2.16
+        with:
+          cuda: '12.8.0'
+          use-github-cache: true
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Build CUDA extract (Windows x64)
+        shell: cmd
+        run: |
+          nvcc -O3 -allow-unsupported-compiler -DFP_TYPE=float ^
+            -gencode arch=compute_75,code=sm_75 ^
+            -gencode arch=compute_86,code=sm_86 ^
+            -gencode arch=compute_89,code=sm_89 ^
+            -gencode arch=compute_120,code=sm_120 ^
+            -I include ^
+            -o build\cllsm2_extract_cuda.exe ^
+            cllsm2_extract_cuda.cu ^
+            -cudart static ^
+            -lcufft_static -lcublas_static -lcublasLt_static -lculibos
+
+      - name: Show binary info
+        shell: pwsh
+        run: |
+          if (Test-Path "build\cllsm2_extract_cuda.exe") {
+            $f = Get-Item "build\cllsm2_extract_cuda.exe"
+            Write-Output "Size: $($f.Length / 1KB) KB"
+          } else {
+            Write-Output "ERROR: binary not found"
+            exit 1
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cllsm2_extract_cuda-win-x64
+          path: build\cllsm2_extract_cuda.exe
